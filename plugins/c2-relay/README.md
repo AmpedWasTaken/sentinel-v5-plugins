@@ -2,7 +2,7 @@
 
 **Standalone Go plugin with a readable YAML configuration, offline diagnostic previews and a narrowly scoped, read-only HTTPS health API check.**
 
-C2 Relay takes inspiration from the *configuration and administration* parts of the older Sentinel-CNC API module, but it is not an attack dispatcher. It supports legacy `<<$target>>` URL placeholders **as a local dry-run preview**, but never calls the resulting `/attack` URL. It does not support packet floods, Qbot/Mirai, traffic generation, remote attack callbacks or SSH-selected outbound targets.
+C2 Relay takes inspiration from the *configuration and administration* parts of the older Sentinel-CNC API module, but it is not an attack dispatcher. It supports legacy `<<$target>>` URL placeholders **as a local dry-run preview**, but never calls the resulting `/testnetwork` or `/attack` URL. It does not support packet floods, Qbot/Mirai, traffic generation, remote attack callbacks or SSH-selected outbound targets.
 
 ## Features
 
@@ -11,7 +11,7 @@ C2 Relay takes inspiration from the *configuration and administration* parts of 
 - Up to three approved endpoints and configurable minimum successful responses (HTTP 200/204).
 - Safe-by-default outbound behavior: HTTPS port 443 only, no user-supplied target/url, no query strings, no redirects, no proxies and no private/loopback DNS results.
 - Local `info`, `methods`, and `preview` commands with SML v2 terminal output.
-- A `template` command for previewing an encoded legacy `/attack` URL with static `<<$target>>`, `<<$port>>`, `<<$duration>>` and `<<$method>>` placeholders; **no dispatch**.
+- A `template` command for previewing an encoded `/testnetwork` or `/attack` URL with static `<<$target>>`, `<<$port>>`, `<<$duration>>` and `<<$method>>` placeholders; **no dispatch**.
 - Bounded parser/protocol input; Go unit tests for configuration and command handling.
 
 ## Configuration
@@ -49,7 +49,7 @@ relay:
   attack_template:
     enabled: true
     mode: preview_only
-    url: "https://api.example.com/attack?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>"
+    url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
 
   scenarios:
     api-health:
@@ -75,13 +75,19 @@ plugins/c2-relay/
   main.go
   health.go
   template.go
+  views.go
   main_test.go
   health_test.go
   template_test.go
-  views/c2-relay-report.sml
+  views_test.go
+  views/relay-*.sml      # 32 state-specific SML screens
 ```
 
 This Go program implements Sentinel's one-shot JSON plugin protocol without importing the private core SDK. Its sole external dependency is the YAML parser `gopkg.in/yaml.v3`. It has no privileged host-service capabilities.
+
+**API key handling:** The URL's `key=<<$api_key>>` is an intentionally redacted display marker. The preview displays `key=REDACTED` and **never resolves, stores, sends, logs, or prints a real provider key**. Do not paste a real API key in this YAML file or in GitHub. Sentinel currently clears the child process environment, so adding a secret environment-variable name would not by itself make authenticated execution possible.
+
+**Network behavior:** `check` can make actual fixed `GET /health` or `GET /status` requests. The `template` command remains offline. A URL containing `/testnetwork`, `/attack`, or a test-job parameter is never passed to the HTTP client.
 
 ## Build and test
 
@@ -99,7 +105,7 @@ On Windows, build as `c2-relay.exe`. Place the reviewed binary in the installed 
 assets/plugins/c2-relay/
   plugin.yaml
   config.yaml
-  views/c2-relay-report.sml
+  views/*.sml
   bin/c2-relay        # Linux/macOS
   bin/c2-relay.exe    # Windows
 ```
@@ -110,6 +116,9 @@ The plugin is disabled by default. It requires a Sentinel administrator to revie
 
 ```text
 plugins enable c2-relay
+c2-relay help
+c2-relay views
+c2-relay views name=relay-preview-sent
 c2-relay info
 c2-relay methods
 c2-relay preview scenario=api-health group=user duration=30
@@ -118,6 +127,12 @@ c2-relay template target=example.org port=443 duration=30 method=tcp group=user
 ```
 
 `check` accepts **no arguments** and uses only the fixed health endpoints in `config.yaml`. It reports how many endpoints answered successfully, without rendering their response bodies or sending user-provided parameters.
+
+## Legacy-inspired SML views
+
+C2 Relay now bundles **32 named screens** for status, preview confirmation, health availability, invalid method, target, duration, port, syntax, key-value options, limits, cooldown, and permissions, based on the kinds of states in Sentinel-CNC's old `assets/branding/attacks` templates.
+
+Use `c2-relay views` to list them and `c2-relay views name=relay-invalid-port` to inspect a demonstration. Regular `info`, `methods`, `check`, and `template` commands select matching screens. Legacy launch/cooldown/slot screens are explicitly demonstrations and never claim a real traffic job was started. The views are plain SML v2 and do not depend on an unmerged styling branch.
 
 ## What was retained from Sentinel-CNC?
 
@@ -137,13 +152,13 @@ For observability integrations requiring richer authenticated JSON fields, use S
 
 ## Legacy /attack URL template (dry-run only)
 
-The `attack_template` YAML key accepts a fixed HTTPS URL ending in `/attack`. Configure `mode: preview_only` and include all four tokens in static query values:
+The `attack_template` YAML key accepts a fixed HTTPS URL ending in `/testnetwork` (or legacy `/attack`). Configure `mode: preview_only` and include all four tokens in static query values:
 
 ```yaml
 attack_template:
   enabled: true
   mode: preview_only
-  url: "https://api.example.com/attack?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>"
+  url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
 ```
 
 ```text
