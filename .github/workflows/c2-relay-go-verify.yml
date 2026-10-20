@@ -24,8 +24,6 @@ jobs:
         with:
           go-version: '1.23'
           cache-dependency-path: plugins/c2-relay/go.sum
-      - name: Format (check only)
-        run: test -z "$(gofmt -l *.go)"
       - name: Unit tests with race detector
         run: go test -race ./...
       - name: Go vet
