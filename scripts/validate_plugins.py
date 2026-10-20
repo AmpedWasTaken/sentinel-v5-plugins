@@ -174,7 +174,7 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
             if not isinstance(caps, list) or any(not slug(c, SAFE_CAP) for c in caps):
                 errors.append(f"{manifest_path}: invalid runtime capabilities")
 
-    commands = manifest.get("commands")
+    commands = manifest.get("commands", [])
     if not isinstance(commands, list) or not (0 if isinstance(manifest.get('experience'), dict) else 1) <= len(commands) <= 32:
         errors.append(f"{manifest_path}: provide commands or a valid experience")
         commands = []
