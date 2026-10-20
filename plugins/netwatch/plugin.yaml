@@ -1,0 +1,17 @@
+version: 1
+id: netwatch
+name: Sentinel NetWatch
+description: "Read-only network bandwidth snapshots and per-interface counters"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: netwatch
+  timeout_ms: 4000
+commands:
+  - name: watch
+    description: "Sample network interface traffic over one second"
+    capability: code.invoke
+  - name: interfaces
+    description: "List host interfaces, counters, packets and errors"
+    capability: code.invoke

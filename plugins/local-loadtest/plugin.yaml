@@ -1,0 +1,17 @@
+version: 1
+id: local-loadtest
+name: Local Load Test
+description: "Bounded HTTP diagnostics for an explicitly configured loopback development service"
+enabled: false
+roles: [admin]
+runtime:
+  kind: php
+  entry: main.php
+  timeout_ms: 4500
+commands:
+  - name: loadtest
+    description: "Run a bounded local HTTP sample; keys: profile, count, case"
+    capability: code.invoke
+  - name: loadtestinfo
+    description: "Show local load-test profiles and safety limits"
+    capability: code.invoke

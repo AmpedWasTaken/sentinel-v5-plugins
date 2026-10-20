@@ -1,0 +1,14 @@
+version: 1
+id: certcheck
+name: certcheck
+description: "TLS certificate inspector"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: certcheck
+  timeout_ms: 5000
+commands:
+  - name: inspect
+    description: "TLS certificate inspector"
+    capability: code.invoke

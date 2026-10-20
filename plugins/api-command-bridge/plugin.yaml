@@ -1,0 +1,17 @@
+version: 1
+id: api-command-bridge
+name: Simple C2 — API Bridge
+description: "Admin-managed diagnostics bridge and local attack-command simulator"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: api-command-bridge
+  timeout_ms: 4000
+commands:
+  - name: lookup
+    description: "Query a configured HTTPS inventory or diagnostics API"
+    capability: code.invoke
+  - name: attack
+    description: "Validate and simulate a test task without sending attack traffic"
+    capability: code.invoke

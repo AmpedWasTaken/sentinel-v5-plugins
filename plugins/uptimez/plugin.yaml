@@ -1,0 +1,14 @@
+version: 1
+id: uptimez
+name: uptimez
+description: "One-shot HTTP availability and timing"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: uptimez
+  timeout_ms: 5000
+commands:
+  - name: check
+    description: "One-shot HTTP availability and timing"
+    capability: code.invoke

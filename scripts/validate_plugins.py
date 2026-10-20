@@ -174,9 +174,9 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
             if not isinstance(caps, list) or any(not slug(c, SAFE_CAP) for c in caps):
                 errors.append(f"{manifest_path}: invalid runtime capabilities")
 
-    commands = manifest.get("commands")
-    if not isinstance(commands, list) or not 1 <= len(commands) <= 32:
-        errors.append(f"{manifest_path}: provide 1..32 commands")
+    commands = manifest.get("commands", [])
+    if not isinstance(commands, list) or not (0 if isinstance(manifest.get('experience'), dict) else 1) <= len(commands) <= 32:
+        errors.append(f"{manifest_path}: provide commands or a valid experience")
         commands = []
     seen = set()
     provider_names = set()
@@ -191,15 +191,26 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
         if not isinstance(cmd.get("description"), str) or not cmd["description"].strip():
             errors.append(f"{manifest_path}: each command needs a description")
         provider, capability = cmd.get("provider"), cmd.get("capability")
-        if bool(provider) == bool(capability):
-            errors.append(f"{manifest_path}: command {name!r} needs one provider or capability")
-        if provider:
+        if provider and capability in (None, "report.fetch"):
             if runtime is not None or not slug(provider):
-                errors.append(f"{manifest_path}: provider command {name!r} is malformed")
+                errors.append(f"{manifest_path}: invalid report provider")
             provider_names.add(provider)
-        if capability:
-            if runtime is None or capability != "code.invoke":
-                errors.append(f"{manifest_path}: executable command {name!r} needs code.invoke and runtime")
+        elif capability == "code.invoke" and not provider and runtime is not None:
+            pass
+        elif capability == "test.run" and not provider and runtime is None:
+            test = cmd.get("test")
+            if (not isinstance(test, dict) or test.get("profile") != "local-cpu"
+                    or test.get("target") != "self"
+                    or type(test.get("seconds")) is not int
+                    or not 1 <= test["seconds"] <= 10):
+                errors.append(f"{manifest_path}: invalid bounded local test")
+            if isinstance(test, dict):
+                views = test.get("views")
+                if (not isinstance(views, dict)
+                        or any(not slug(views.get(k), COMMAND) for k in ("running", "completed", "error"))):
+                    errors.append(f"{manifest_path}: local test requires SML views")
+        else:
+            errors.append(f"{manifest_path}: unsupported capability/provider combination for {name!r}")
 
     provider_path = folder / "providers.yaml"
     if provider_names or provider_path.exists():

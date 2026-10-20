@@ -1,0 +1,14 @@
+version: 1
+id: whoiz
+name: whoiz
+description: "WHOIS domain lookup"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: whoiz
+  timeout_ms: 5000
+commands:
+  - name: lookup
+    description: "WHOIS domain lookup"
+    capability: code.invoke

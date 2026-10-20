@@ -1,0 +1,14 @@
+version: 1
+id: reqr
+name: reqr
+description: "HTTP request and response inspector"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: reqr
+  timeout_ms: 5000
+commands:
+  - name: request
+    description: "HTTP request and response inspector"
+    capability: code.invoke

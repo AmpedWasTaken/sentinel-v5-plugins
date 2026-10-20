@@ -1,0 +1,10 @@
+version: 1
+id: server-health
+name: Server Health
+description: "Example plugin for reading approved internal server-health reports"
+enabled: false
+roles: [admin, operator, viewer]
+commands:
+  - name: report
+    description: "Read current server health"
+    provider: health

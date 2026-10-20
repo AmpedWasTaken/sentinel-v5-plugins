@@ -1,0 +1,14 @@
+version: 1
+id: authguard
+name: authguard
+description: "Authentication log event summary"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: authguard
+  timeout_ms: 5000
+commands:
+  - name: summary
+    description: "Authentication log event summary"
+    capability: code.invoke

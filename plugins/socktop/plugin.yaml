@@ -1,0 +1,14 @@
+version: 1
+id: socktop
+name: socktop
+description: "Linux socket tables"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: socktop
+  timeout_ms: 5000
+commands:
+  - name: connections
+    description: "Linux socket tables"
+    capability: code.invoke

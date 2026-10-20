@@ -1,0 +1,72 @@
+name: Publish verified community plugins
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (plugins-vX.Y.Z)"
+        required: true
+        type: string
+      public_base_url:
+        description: "Public HTTPS release directory (e.g. https://downloads.example.org/plugins/plugins-v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Test all Go packages
+        run: go test ./...
+      - name: Cross-compile all community plugin executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          plugins="netcatty pktpeek portfox sysmon reqr dnsdig certcheck logtail latency socktop filewatch docktop sshwatch hookbin ioclookup httpxray whoiz jwtpeek gitty servectl termfiles authguard jsonfix hashkit uptimez"
+          for target in linux-amd64 linux-arm64 windows-amd64; do
+            os="${target%-*}"
+            arch="${target#*-}"
+            mkdir -p "build-plugins/$target"
+            for id in $plugins; do
+              ext=""
+              if [ "$os" = windows ]; then ext=".exe"; fi
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w" -o "build-plugins/$target/$id$ext" "./plugins/$id"
+            done
+          done
+      - name: Build verified ZIP files and catalog
+        env:
+          PLUGIN_TAG: ${{ inputs.release_tag }}
+          PUBLIC_BASE_URL: ${{ inputs.public_base_url }}
+        run: python3 scripts/package-plugin-releases.py --tag "$PLUGIN_TAG" --base-url "$PUBLIC_BASE_URL"
+      - name: Verify release archives and checksums offline
+        run: python3 scripts/verify-plugin-releases.py release-plugins
+      - name: Store release files for public hosting
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-plugin-release
+          path: release-plugins/*
+          if-no-files-found: error
+      - name: Publish private GitHub release for review (not the installer download host)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUGIN_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$PLUGIN_TAG" =~ ^plugins-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Use plugins-v<major>.<minor>.<patch>"
+            exit 1
+          fi
+          if gh release view "$PLUGIN_TAG" >/dev/null 2>&1; then
+            echo "Refusing to overwrite an existing release"
+            exit 1
+          fi
+          gh release create "$PLUGIN_TAG" release-plugins/* --title "Community plugins $PLUGIN_TAG" --notes "Platform builds and checksum-pinned catalog generated from the reviewed Sentinel source."

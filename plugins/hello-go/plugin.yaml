@@ -1,0 +1,14 @@
+version: 1
+id: hello-go
+name: Hello Go
+description: Compiled trusted Go code plugin
+enabled: false
+roles: [admin]
+runtime:
+  kind: exec
+  binary: hello-go
+  timeout_ms: 3000
+commands:
+  - name: greet
+    description: Display a greeting
+    capability: code.invoke

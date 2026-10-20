@@ -1,0 +1,26 @@
+version: 1
+id: snet
+name: Sentinel NetTools
+description: "Netcat-style TCP/UDP diagnostics, banner reads, and bounded listeners"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: snet
+  timeout_ms: 5000
+commands:
+  - name: connect
+    description: "Connect to TCP host:port and optionally send text"
+    capability: code.invoke
+  - name: scan
+    description: "Check up to 32 TCP ports"
+    capability: code.invoke
+  - name: banner
+    description: "Read a short TCP service greeting"
+    capability: code.invoke
+  - name: udp
+    description: "Send UDP probe and optionally read response"
+    capability: code.invoke
+  - name: listen
+    description: "Read one bounded inbound TCP connection"
+    capability: code.invoke

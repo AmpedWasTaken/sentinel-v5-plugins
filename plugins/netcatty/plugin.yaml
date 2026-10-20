@@ -1,0 +1,23 @@
+version: 1
+id: netcatty
+name: netcatty
+description: "Tiny TCP/UDP Swiss Army knife"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: netcatty
+  timeout_ms: 5000
+commands:
+  - name: connect
+    description: "Tiny TCP/UDP Swiss Army knife"
+    capability: code.invoke
+  - name: scan
+    description: "Tiny TCP/UDP Swiss Army knife"
+    capability: code.invoke
+  - name: banner
+    description: "Tiny TCP/UDP Swiss Army knife"
+    capability: code.invoke
+  - name: udp
+    description: "Tiny TCP/UDP Swiss Army knife"
+    capability: code.invoke

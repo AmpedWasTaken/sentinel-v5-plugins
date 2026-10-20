@@ -35,3 +35,20 @@ jobs:
         run: |
           echo "Manifest/static checks passed. Community plugin code was NOT executed."
           echo "Human source, dependency and release artifact review remains required."
+
+  go-source:
+    name: Test and vet migrated Go plugin source
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run Go source tests
+        run: go test ./...
+      - name: Vet Go source
+        run: go vet ./...

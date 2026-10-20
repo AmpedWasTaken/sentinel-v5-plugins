@@ -1,0 +1,14 @@
+version: 1
+id: sysmon
+name: sysmon
+description: "Host metrics and process memory"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: sysmon
+  timeout_ms: 5000
+commands:
+  - name: stats
+    description: "Host metrics and process memory"
+    capability: code.invoke

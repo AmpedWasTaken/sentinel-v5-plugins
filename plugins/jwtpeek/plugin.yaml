@@ -1,0 +1,14 @@
+version: 1
+id: jwtpeek
+name: jwtpeek
+description: "Decode unverified JWT claims"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: jwtpeek
+  timeout_ms: 5000
+commands:
+  - name: decode
+    description: "Decode unverified JWT claims"
+    capability: code.invoke

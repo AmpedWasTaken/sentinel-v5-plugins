@@ -1,0 +1,14 @@
+version: 1
+id: pktpeek
+name: pktpeek
+description: "Bounded live tcpdump capture"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: pktpeek
+  timeout_ms: 5000
+commands:
+  - name: capture
+    description: "Bounded live tcpdump capture"
+    capability: code.invoke

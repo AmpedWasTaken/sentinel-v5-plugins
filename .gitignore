@@ -25,3 +25,7 @@ build/
 *.pfx
 .DS_Store
 Thumbs.db
+
+/build-local/
+/build-plugins/
+/release-plugins/

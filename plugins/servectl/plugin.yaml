@@ -1,0 +1,14 @@
+version: 1
+id: servectl
+name: servectl
+description: "List systemd services"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: servectl
+  timeout_ms: 5000
+commands:
+  - name: list
+    description: "List systemd services"
+    capability: code.invoke

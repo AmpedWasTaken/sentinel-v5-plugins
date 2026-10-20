@@ -1,0 +1,29 @@
+version: 1
+id: classic-ops
+name: Classic Operations
+description: "CNC-inspired experience skin for the existing safe Sentinel workflows"
+enabled: false
+roles: [admin, operator, viewer]
+experience:
+  palette: ["#9be7e8", "#b0a5ff", "#ffabd9"]
+  web_theme:
+    background: "#09090b"
+    surface: "#101015"
+    ink: "#f1f5f9"
+    muted: "#a1a1aa"
+    border: "#33333a"
+    accent: "#9be7e8"
+  screen_overrides:
+    welcome: classic-welcome
+    home: classic-home
+    lab: classic-lab
+  commands:
+    - name: methods
+      description: "Classic scenario catalog"
+      type: screen
+      screen: classic-methods
+      override: true
+    - name: credits
+      description: "Show installed experience information"
+      type: text
+      text: "Classic Operations / Sentinel V5 experience. Core security and accounts remain unchanged."

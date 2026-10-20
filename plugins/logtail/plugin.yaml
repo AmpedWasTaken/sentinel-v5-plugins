@@ -1,0 +1,14 @@
+version: 1
+id: logtail
+name: logtail
+description: "Recent host security and system log lines"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: logtail
+  timeout_ms: 5000
+commands:
+  - name: read
+    description: "Recent host security and system log lines"
+    capability: code.invoke
