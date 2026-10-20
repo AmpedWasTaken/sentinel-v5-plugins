@@ -136,7 +136,7 @@ func(s *webService)stop()error{
  if err!=nil{_ = srv.Close();return fmt.Errorf("shutdown interrupted: %w",err)}
  return nil
 }
-func(s *webService)close(){if s.stop()!=nil{}}
+func(s *webService)close(){_ = s.stop()}
 func(s *webService)reload()error{
  next,err:=loadConfig();if err!=nil{return err}
  s.mu.Lock();defer s.mu.Unlock()
@@ -192,12 +192,14 @@ func(s *webService)serveHTTP(w http.ResponseWriter,r *http.Request){
   return
  }
  if !state.limiter.allow(remoteIP(r)){
-  recorder.Header().Set("Retry-After","60")
-  writeJSON(recorder,http.StatusTooManyRequests,`{"error":"rate limit exceeded"}`)
+  retry:=60/cfg.raw.Rate.RequestsPerMinute
+  if retry<1{retry=1}
+  recorder.Header().Set("Retry-After",strconv.Itoa(retry))
+  writeJSON(recorder,r,http.StatusTooManyRequests,`{"error":"rate limit exceeded"}`)
   return
  }
  if r.URL.Path=="/_sentinel/health"{
-  writeJSON(recorder,http.StatusOK,`{"status":"ok"}`)
+  writeJSON(recorder,r,http.StatusOK,`{"status":"ok"}`)
   return
  }
  if route,ok:=cfg.routes[r.URL.Path];ok{
@@ -219,10 +221,10 @@ func normalizeHost(raw string)string{
  raw=strings.TrimPrefix(strings.TrimSuffix(raw,"]"),"[")
  return strings.TrimSuffix(strings.ToLower(raw),".")
 }
-func writeJSON(w http.ResponseWriter,status int,body string){
+func writeJSON(w http.ResponseWriter,r *http.Request,status int,body string){
  w.Header().Set("Content-Type","application/json; charset=utf-8")
  w.WriteHeader(status)
- _,_=io.WriteString(w,body)
+ if r.Method!=http.MethodHead{_,_=io.WriteString(w,body)}
 }
 func safeFile(root,requested string)(*os.File,os.FileInfo,error){
  candidate:=filepath.Join(root,filepath.FromSlash(strings.TrimPrefix(requested,"/")))
