@@ -2,7 +2,7 @@
 
 **Standalone Go plugin with a readable YAML configuration, offline diagnostic previews and a narrowly scoped, read-only HTTPS health API check.**
 
-C2 Relay takes inspiration from the *configuration and administration* parts of the older Sentinel-CNC API module, but it is not an attack dispatcher. It does not support target substitution, packet floods, Qbot/Mirai, traffic generation, remote attack callbacks, arbitrary URL templates or requests chosen by SSH users.
+C2 Relay takes inspiration from the *configuration and administration* parts of the older Sentinel-CNC API module, but it is not an attack dispatcher. It supports legacy `<<$target>>` URL placeholders **as a local dry-run preview**, but never calls the resulting `/attack` URL. It does not support packet floods, Qbot/Mirai, traffic generation, remote attack callbacks or SSH-selected outbound targets.
 
 ## Features
 
@@ -11,6 +11,7 @@ C2 Relay takes inspiration from the *configuration and administration* parts of 
 - Up to three approved endpoints and configurable minimum successful responses (HTTP 200/204).
 - Safe-by-default outbound behavior: HTTPS port 443 only, no user-supplied target/url, no query strings, no redirects, no proxies and no private/loopback DNS results.
 - Local `info`, `methods`, and `preview` commands with SML v3 terminal output.
+- A `template` command for previewing an encoded legacy `/attack` URL with static `<<$target>>`, `<<$port>>`, `<<$duration>>` and `<<$method>>` placeholders; **no dispatch**.
 - Bounded parser/protocol input; Go unit tests for configuration and command handling.
 
 ## Configuration
@@ -44,6 +45,12 @@ relay:
       - name: primary
         url: "https://example.com/health"
 
+  # URL templating is dry-run only; the rendered URL is never requested.
+  attack_template:
+    enabled: true
+    mode: preview_only
+    url: "https://api.example.com/attack?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>"
+
   scenarios:
     api-health:
       enabled: true
@@ -67,8 +74,10 @@ plugins/c2-relay/
   go.sum
   main.go
   health.go
+  template.go
   main_test.go
   health_test.go
+  template_test.go
   views/c2-relay-report.sml
 ```
 
@@ -105,13 +114,14 @@ c2-relay info
 c2-relay methods
 c2-relay preview scenario=api-health group=user duration=30
 c2-relay check
+c2-relay template target=example.org port=443 duration=30 method=tcp group=user
 ```
 
 `check` accepts **no arguments** and uses only the fixed health endpoints in `config.yaml`. It reports how many endpoints answered successfully, without rendering their response bodies or sending user-provided parameters.
 
 ## What was retained from Sentinel-CNC?
 
-The former `core/attack` code had a configurable command prefix, parsed flags, method registry, groups/limits, HTTP timeouts and callback state. This plugin only adapts the **benign control/configuration concepts**:
+The former `core/attack` code had a configurable command prefix, parsed flags, method registry, groups/limits, HTTP timeouts and callback state. The legacy URL placeholder syntax can now also be parsed and **displayed without sending a request**. This plugin only adapts the **benign control/configuration concepts**:
 
 | Legacy concept | C2 Relay |
 | --- | --- |
@@ -120,9 +130,27 @@ The former `core/attack` code had a configurable command prefix, parsed flags, m
 | Groups, durations, concurrency | Validated UI configuration; no connections generated |
 | API URL list, minimum success | Up to 3 fixed **read-only health** endpoints; minimum healthy responses |
 | HTTP user agent and timeout | Fixed outbound health GET user agent; 1.2s endpoint limit |
-| Attack callbacks and templated targets | **Not supported** |
+| URL placeholders `<<$target>>` etc. | Display-only substitution with query-value encoding; **never sent** |
+| Attack callbacks and remote dispatch | **Not supported** |
 
 For observability integrations requiring richer authenticated JSON fields, use Sentinel's existing read-only provider system rather than extending this executable to arbitrary HTTP request templates.
+
+## Legacy /attack URL template (dry-run only)
+
+The `attack_template` YAML key accepts a fixed HTTPS URL ending in `/attack`. Configure `mode: preview_only` and include all four tokens in static query values:
+
+```yaml
+attack_template:
+  enabled: true
+  mode: preview_only
+  url: "https://api.example.com/attack?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>"
+```
+
+```text
+c2-relay template target=example.org port=443 duration=30 method=tcp group=user
+```
+
+This produces a **text preview**, not an outbound HTTP call. The plugin validates the arguments and the group duration, substitutes URL-encoded values into the query, rejects unsupported tokens and refuses other modes such as `dispatch`. This command does not accept cookies, headers, callbacks or arbitrary URL overrides. It does not change Sentinel's SSH parser: the documented command still uses `key=value` arguments.
 
 ## Security and compatibility
 
