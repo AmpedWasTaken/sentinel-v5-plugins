@@ -3,7 +3,6 @@ package main
 import (
  "context"
  "crypto/tls"
- "encoding/json"
  "errors"
  "fmt"
  "io"
@@ -172,7 +171,7 @@ func securityHeaders(w http.ResponseWriter,tls bool){
  h.Set("X-Frame-Options","DENY")
  h.Set("Referrer-Policy","no-referrer")
  h.Set("Permissions-Policy","camera=(), microphone=(), geolocation=()")
- h.Set("Content-Security-Policy","default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+ h.Set("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
  if tls{h.Set("Strict-Transport-Security","max-age=31536000")}
 }
 func(s *webService)serveHTTP(w http.ResponseWriter,r *http.Request){
@@ -322,4 +321,3 @@ func(s *webService)trafficTable(limit int)string{
 // The plugin never trusts CF-Connecting-IP, True-Client-IP, X-Real-IP or
 // X-Forwarded-For from arbitrary clients. A future trusted-proxy feature
 // must explicitly authenticate proxy source addresses before using headers.
-var _ = json.Valid
