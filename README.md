@@ -16,7 +16,7 @@ Community-maintained extensions for the Sentinel V5 SSH workspace: diagnostics, 
 
 This is the **public contribution repository** for [Sentinel V5](https://github.com/AmpedWasTaken/Sentinel-V5). Anyone can propose a plugin, contribute source code, improve SML screens, or help review existing contributions.
 
-**This repository is not an automatically published marketplace.** A merged pull request means the source is accepted into this repository; it does **not** mean the plugin has passed a full security audit, been compiled for all platforms, or become installable from Sentinel's marketplace.
+This is also the canonical source for Sentinel's extracted example and community plugins. **This repository is not an automatically published marketplace.** A merged pull request means the source is accepted into this repository; it does **not** mean the plugin has passed a full security audit, been compiled for all platforms, or become installable from Sentinel's marketplace.
 
 ### What can you build?
 
@@ -114,3 +114,15 @@ See [Review process](docs/REVIEW_PROCESS.md) for the complete workflow and clear
 Maintained by **AmpedWasTaken** with community contributions. Source in this repository is distributed under the [MIT License](LICENSE); contributors retain their own copyright and must have the rights to submit their code. Check individual dependencies' licenses before redistribution.
 
 > Sentinel V5 and this community repository are active development projects. Plugin interfaces, packaging and marketplace availability may evolve. Consult the actual Sentinel version and SDK before writing code that depends on specific host APIs.
+
+## Extracted plugin source
+
+Previously bundled extensions now live in [`plugins/`](plugins/), with their sources and SML assets. Plugin Go code builds independently from the private core:
+
+```sh
+go test ./...
+go vet ./...
+go build -o /tmp/netwatch ./plugins/netwatch
+```
+
+See [MIGRATION.md](MIGRATION.md). Merging source never automatically approves, publishes or enables binaries.
