@@ -32,6 +32,13 @@ relay:
       - name: primary
         url: "https://example.com/health"
 
+  # Legacy placeholder syntax preserved for documentation / dry-run display.
+  # Never dispatched: no HTTP request to /attack, no remote callback.
+  attack_template:
+    enabled: true
+    mode: preview_only
+    url: "https://api.example.com/attack?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>"
+
   # Terminal-only previews; no traffic leaves the host for these.
   scenarios:
     api-health:
