@@ -1,0 +1,52 @@
+# C2 Relay — administrative previews and read-only health API checks.
+# No remote attack dispatch, flooding, callbacks or user-provided target URLs.
+version: 1
+relay:
+  command_prefix: "!"
+  kv_prefix: "-"
+  timeout_unit: second
+  timeout_seconds: 15
+  default_duration_seconds: 60
+  user_agent: ""
+  callback_preview: false
+
+  groups:
+    - name: user
+      max_duration_seconds: 600
+      max_concurrent: 15
+    - name: operator
+      max_duration_seconds: 120
+      max_concurrent: 2
+
+  dns:
+    enabled: true
+    resolvers: ["1.1.1.1", "8.8.8.8"]
+
+  # Real HTTPS GET, fixed paths only: /health or /status.
+  # No query strings, targets, dynamic templates or arbitrary HTTP methods.
+  # Disabled until an administrator reviews and configures an authorized API.
+  health_api:
+    enabled: false
+    minimum_success: 1
+    endpoints:
+      - name: primary
+        url: "https://example.com/health"
+
+  # Legacy placeholders: /testnetwork sample and redacted API key for dry-run display.
+  # Never dispatched: no HTTP request to /testnetwork or /attack, no remote callback.
+  attack_template:
+    enabled: true
+    mode: preview_only
+    url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
+
+  # Terminal-only previews; no traffic leaves the host for these.
+  scenarios:
+    api-health:
+      enabled: true
+      description: "Preview an approved HTTPS health check"
+    dns-info:
+      enabled: true
+      description: "Preview DNS resolver labels"
+    configuration:
+      enabled: true
+      description: "Preview group, duration and concurrency settings"

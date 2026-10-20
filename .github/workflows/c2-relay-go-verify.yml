@@ -1,0 +1,37 @@
+name: Verify C2 Relay Go code (maintainer branch only)
+
+on:
+  push:
+    branches:
+      - main
+      - feat/funnel-go-yaml-simulation-20261020
+    paths:
+      - 'plugins/c2-relay/**'
+      - '.github/workflows/c2-relay-go-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-go:
+    if: github.repository == 'AmpedWasTaken/sentinel-v5-plugins' && github.actor == 'AmpedWasTaken'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: plugins/c2-relay
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: plugins/c2-relay/go.sum
+      - name: Unit tests with race detector
+        run: go test -race ./...
+      - name: Go vet
+        run: go vet ./...
+      - name: Build source without publishing executable
+        run: go build -trimpath -o /tmp/c2-relay .

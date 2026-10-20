@@ -1,0 +1,32 @@
+version: 1
+id: c2-relay
+name: C2 Relay
+description: Read-only HTTPS health API relay and offline diagnostic previews
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: c2-relay
+  timeout_ms: 5000
+commands:
+  - name: info
+    description: Show validated C2 Relay configuration
+    capability: code.invoke
+  - name: methods
+    description: List available offline previews
+    capability: code.invoke
+  - name: preview
+    description: Preview bounded configuration without sending traffic
+    capability: code.invoke
+  - name: check
+    description: Query fixed approved HTTPS health/status endpoints
+    capability: code.invoke
+  - name: template
+    description: Render a legacy /attack URL with placeholders (dry-run only; never dispatched)
+    capability: code.invoke
+  - name: views
+    description: Show the SML screen gallery (demo only)
+    capability: code.invoke
+  - name: help
+    description: Display command documentation in SML
+    capability: code.invoke
