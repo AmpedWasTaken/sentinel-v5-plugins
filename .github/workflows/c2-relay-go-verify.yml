@@ -6,6 +6,7 @@ on:
       - main
       - feat/funnel-go-yaml-simulation-20261020
       - feat/c2-relay-method-profiles-yaml-20261020
+      - feat/c2-relay-three-file-layout-20261020
     paths:
       - 'plugins/c2-relay/**'
       - '.github/workflows/c2-relay-go-verify.yml'
@@ -29,7 +30,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-          cache-dependency-path: plugins/c2-relay/go.sum
+          cache-dependency-path: go.sum
       - name: Go vet
         run: go vet ./...
       - name: Build source without publishing executable

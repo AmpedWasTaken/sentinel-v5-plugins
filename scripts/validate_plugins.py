@@ -130,11 +130,15 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
     if not slug(folder.name):
         errors.append(f"{folder}: plugin directory must be a lowercase slug")
     validate_files(folder, errors)
-    if not (folder / "README.md").is_file():
+    compact = (folder / "plugin.yml").exists()
+    if not (folder / "README.md").is_file() and not compact:
         errors.append(f"{folder}: missing plugin README.md")
-    manifest_path = folder / "plugin.yaml"
+    if (folder / "plugin.yml").exists() and (folder / "plugin.yaml").exists():
+        errors.append(f"{folder}: choose plugin.yml OR plugin.yaml, not both")
+        return
+    manifest_path = folder / ("plugin.yml" if compact else "plugin.yaml")
     if not manifest_path.is_file() or manifest_path.is_symlink():
-        errors.append(f"{folder}: missing regular plugin.yaml")
+        errors.append(f"{folder}: missing regular plugin manifest")
         return
     manifest = read_yaml(manifest_path, errors)
     if manifest is None:
