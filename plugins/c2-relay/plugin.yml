@@ -1,13 +1,14 @@
 version: 1
 id: c2-relay
 name: C2 Relay
-description: Compact provider/method registry and read-only HTTPS health checks
+description: Hot-reloaded role-checked methods, multi-provider metadata, and safe health checks
 enabled: false
 roles: [admin, operator]
 runtime:
   kind: exec
   binary: c2-relay
   timeout_ms: 5000
+dynamic_commands: config.yml
 commands:
   - name: info
     description: Show provider and method configuration counts
@@ -17,15 +18,6 @@ commands:
     capability: code.invoke
   - name: methods
     description: List available method mappings and group permissions
-    capability: code.invoke
-  - name: tcp
-    description: Validate TCP method arguments without launching network traffic
-    capability: code.invoke
-  - name: udp
-    description: Validate UDP method arguments without launching network traffic
-    capability: code.invoke
-  - name: http
-    description: Validate HTTP method arguments without launching network traffic
     capability: code.invoke
   - name: check
     description: Query administrator-approved read-only HTTPS health endpoints

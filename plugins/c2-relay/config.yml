@@ -11,7 +11,7 @@ relay:
   callback_preview: false
 
   groups:
-    - name: user
+    - name: admin
       max_duration_seconds: 600
       max_concurrent: 15
     - name: operator
@@ -30,6 +30,7 @@ relay:
       - name: primary
         url: "https://example.com/health"
 
+  # These are method metadata only; only health/status endpoints perform GET.
   # Reusable connections. Two or more providers may be bound to one method.
   # URL templates are validated but never sent as requests.
   providers:
@@ -50,13 +51,13 @@ relay:
       description: "TCP method using multiple configured providers"
       providers: [provider_one, provider_two]
       minimum_success: 1
-      permissions: [user, operator]
+      permissions: [admin, operator]
     udp:
       enabled: true
       description: "UDP method with provider one"
       providers: [provider_one]
       minimum_success: 1
-      permissions: [user]
+      permissions: [operator]
     http:
       enabled: true
       description: "HTTP method with provider two"

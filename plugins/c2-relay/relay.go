@@ -158,7 +158,9 @@ func(cfg Config)Validate()error{
   if m.MinimumSuccess<1||m.MinimumSuccess>count{return fmt.Errorf("method %s: invalid minimum_success",id)}
   seen=map[string]bool{}
   for _,permission:=range m.Permissions {
-   if !groups[permission]||seen[permission]{return fmt.Errorf("method %s: invalid group permission %q",id,permission)}
+   if (permission!="admin"&&permission!="operator"&&permission!="viewer")||!groups[permission]||seen[permission] {
+    return fmt.Errorf("method %s: permissions must be unique authenticated Sentinel roles with matching duration limits",id)
+   }
    seen[permission]=true
   }
  }
@@ -211,30 +213,72 @@ func validateTarget(raw string)error{
  }
  return nil
 }
+// tabularOutput provides readable terminal tables without additional assets.
+func tabularOutput(title string, columns []string, rows [][]string)string{
+ widths:=make([]int,len(columns))
+ for i,col:=range columns{widths[i]=len(col)}
+ for _,row:=range rows{
+  for i,col:=range row{
+   if i>=len(widths){break}
+   if len(col)>widths[i]{widths[i]=len(col)}
+  }
+ }
+ for i:=range widths{if widths[i]>42{widths[i]=42}}
+ render:=func(cells []string)string{
+  parts:=make([]string,0,len(columns))
+  for i:=range columns{
+   cell:=""
+   if i<len(cells){cell=cells[i]}
+   if len(cell)>widths[i]{cell=cell[:widths[i]-3]+"..."}
+   parts=append(parts,fmt.Sprintf("%-*s",widths[i],cell))
+  }
+  return strings.TrimRight(strings.Join(parts,"  ")," ")
+ }
+ result:=[]string{"C2 RELAY / "+title,strings.Repeat("─",min(70,8+len(title)))}
+ result=append(result,render(columns))
+ divider:=make([]string,len(widths))
+ for i,w:=range widths{divider[i]=strings.Repeat("-",w)}
+ result=append(result,render(divider))
+ if len(rows)==0{result=append(result,"(none)")}
+ for _,row:=range rows{result=append(result,render(row))}
+ return strings.Join(result,"\n")
+}
+
+// All authorizations use the session-provided role, never a caller-supplied
+// group. Core independently enforces the same dynamic command grants.
 func methodInfo(req Request,relay RelayConfig)(Result,error){
  method,exists:=relay.Methods[req.Command]
- if !exists||!method.Enabled{return Result{},errors.New("unknown or disabled method")}
- for key:=range req.Args {
-  if key!="target"&&key!="duration"&&key!="port"&&key!="group"{return Result{},fmt.Errorf("unsupported method argument %q",key)}
+ if !exists||!method.Enabled{return Result{},errors.New("method not found or disabled")}
+ if req.Role!="admin"&&req.Role!="operator"&&req.Role!="viewer"{return Result{},errors.New("unrecognized authenticated role")}
+ for key:=range req.Args{
+  if key!="target"&&key!="duration"&&key!="port"{return Result{},fmt.Errorf("unsupported argument %q; role and group cannot be selected by caller",key)}
  }
+ granted:=false
+ for _,role:=range method.Permissions{if role==req.Role{granted=true;break}}
+ if !granted{return Result{},fmt.Errorf("method %s denied for authenticated role %s",req.Command,req.Role)}
  target:=req.Args["target"]
  if err:=validateTarget(target);err!=nil{return Result{},err}
  port,err:=strconv.Atoi(req.Args["port"])
- if err!=nil||port<1||port>65535{return Result{},errors.New("port must be between 1 and 65535")}
- group:=req.Args["group"]
- if group==""{group="user"}
- permitted:=false
- for _,p:=range method.Permissions{if p==group{permitted=true;break}}
- if !permitted{return Result{},errors.New("group is not permitted for this method")}
+ if err!=nil||port<1||port>65535{return Result{},errors.New("port must be 1..65535")}
  maxSeconds:=0
- for _,g:=range relay.Groups{if g.Name==group{maxSeconds=g.MaxDurationSeconds;break}}
- if maxSeconds==0{return Result{},errors.New("group is not configured")}
+ for _,g:=range relay.Groups{if g.Name==req.Role{maxSeconds=g.MaxDurationSeconds;break}}
+ if maxSeconds==0{return Result{},errors.New("authenticated role has no configured duration limit")}
  seconds:=relay.DefaultDurationSeconds
  if raw:=req.Args["duration"];raw!=""{
-  seconds,err=strconv.Atoi(raw);if err!=nil{return Result{},errors.New("duration must be whole seconds")}
+  seconds,err=strconv.Atoi(raw)
+  if err!=nil{return Result{},errors.New("duration must be whole seconds")}
  }
- if seconds<1||seconds>maxSeconds{return Result{},fmt.Errorf("duration must be between 1 and %d seconds",maxSeconds)}
- return Result{Text:fmt.Sprintf("Method: %s\nTarget: %s\nDuration: %d seconds\nPort: %d\nProviders: %s\nStatus: configuration validated; no remote launch was sent.",req.Command,target,seconds,port,strings.Join(method.Providers,", "))},nil
+ if seconds<1||seconds>maxSeconds{return Result{},fmt.Errorf("duration must be 1..%d seconds for role %s",maxSeconds,req.Role)}
+ text:=tabularOutput("METHOD",[]string{"FIELD","VALUE"},[][]string{
+  {"Method",req.Command},
+  {"Target",target},
+  {"Port",strconv.Itoa(port)},
+  {"Duration",fmt.Sprintf("%ds",seconds)},
+  {"Authorized role",req.Role},
+  {"Providers",strings.Join(method.Providers,", ")},
+  {"Result","Configuration validated; no launch request sent"},
+ })
+ return Result{Text:text},nil
 }
 func handle(req Request,cfg Config)(Result,error){
  if req.Version!=protocolVersion{return Result{},errors.New("unsupported plugin protocol version")}
@@ -242,34 +286,45 @@ func handle(req Request,cfg Config)(Result,error){
  if req.Args==nil{req.Args=map[string]string{}}
  switch req.Command{
  case "info":
-  if len(req.Args)>0{return Result{},errors.New("info accepts no arguments")}
+  if len(req.Args)>0{return Result{},errors.New("info takes no arguments")}
   enabled:=0
   for _,m:=range relay.Methods{if m.Enabled{enabled++}}
-  return Result{Text:fmt.Sprintf("C2 Relay\nProviders: %d\nMethods: %d (%d enabled)\nReal network access: fixed health endpoints only.",len(relay.Providers),len(relay.Methods),enabled)},nil
+  return Result{Text:tabularOutput("OVERVIEW",[]string{"SETTING","VALUE"},[][]string{
+   {"Providers",strconv.Itoa(len(relay.Providers))},
+   {"Methods",fmt.Sprintf("%d enabled / %d configured",enabled,len(relay.Methods))},
+   {"Role","Authenticated Sentinel role"},
+   {"Config refresh","Automatic on every command"},
+   {"Network","Read-only health/status GET only"},
+  })},nil
  case "methods":
-  if len(req.Args)>0{return Result{},errors.New("methods accepts no arguments")}
-  lines:=[]string{"Methods:"}
-  for _,id:=range sortedKeys(relay.Methods){
-   m:=relay.Methods[id]
-   if m.Enabled{lines=append(lines,fmt.Sprintf("  %s: providers=[%s], groups=[%s]",id,strings.Join(m.Providers,","),strings.Join(m.Permissions,",")))}
+  if len(req.Args)>0{return Result{},errors.New("methods takes no arguments")}
+  rows:=[][]string{}
+  for _,name:=range sortedKeys(relay.Methods){
+   m:=relay.Methods[name]
+   status:="DISABLED"
+   if m.Enabled{status="ENABLED"}
+   roles:=strings.Join(m.Permissions,",")
+   rows=append(rows,[]string{name,status,roles,fmt.Sprintf("%d",len(m.Providers))})
   }
-  return Result{Text:strings.Join(lines,"\n")},nil
+  return Result{Text:tabularOutput("METHODS",[]string{"METHOD","STATUS","ROLES","PROVIDERS"},rows)},nil
  case "providers":
-  if len(req.Args)>0{return Result{},errors.New("providers accepts no arguments")}
-  lines:=[]string{"Providers (no credentials displayed):"}
-  for _,id:=range sortedKeys(relay.Providers){
-   p:=relay.Providers[id]
-   lines=append(lines,fmt.Sprintf("  %s: enabled=%t endpoints=%d",id,p.Enabled,len(p.Endpoints)))
+  if len(req.Args)>0{return Result{},errors.New("providers takes no arguments")}
+  rows:=[][]string{}
+  for _,name:=range sortedKeys(relay.Providers){
+   p:=relay.Providers[name]
+   state:="DISABLED"
+   if p.Enabled{state="CONFIGURED"}
+   rows=append(rows,[]string{name,state,fmt.Sprint(len(p.Endpoints)),"NOT CHECKED"})
   }
-  return Result{Text:strings.Join(lines,"\n")},nil
- case "tcp","udp","http":
-  return methodInfo(req,relay)
+  return Result{Text:tabularOutput("PROVIDERS",[]string{"PROVIDER","STATE","ENDPOINTS","HEALTH"},rows)},nil
  case "check":
-  if len(req.Args)>0{return Result{},errors.New("check accepts no arguments")}
+  if len(req.Args)>0{return Result{},errors.New("check takes no arguments")}
   status,err:=checkHealthAPI(relay.HealthAPI,relay.UserAgent)
   if err!=nil{return Result{},err}
-  return Result{Text:status},nil
- default:return Result{},errors.New("unknown C2 Relay command")
+  return Result{Text:tabularOutput("HEALTH",[]string{"CHECK","RESULT"},[][]string{{"Fixed HTTPS health endpoints",status}})},nil
+ default:
+  if _,ok:=relay.Methods[req.Command];ok{return methodInfo(req,relay)}
+  return Result{},fmt.Errorf("unknown command %q; use methods to inspect enabled commands",req.Command)
  }
 }
 func serve(input io.Reader,output io.Writer)error{

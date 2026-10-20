@@ -216,6 +216,46 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
         else:
             errors.append(f"{manifest_path}: unsupported capability/provider combination for {name!r}")
 
+    # Strictly validate dynamically discovered method registrations without
+    # executing submitted Go binaries. The host revalidates these on every load.
+    dynamic_config = manifest.get("dynamic_commands")
+    if dynamic_config is not None:
+        if dynamic_config != "config.yml" or not isinstance(runtime, dict) or runtime.get("kind") != "exec":
+            errors.append(f"{manifest_path}: dynamic_commands requires trusted exec and config.yml")
+        else:
+            config_path = folder / "config.yml"
+            if not config_path.is_file() or config_path.is_symlink():
+                errors.append(f"{folder}: dynamic command config.yml missing or symlinked")
+            else:
+                dynamic = read_yaml(config_path, errors)
+                relay = dynamic.get("relay") if isinstance(dynamic, dict) else None
+                methods = relay.get("methods") if isinstance(relay, dict) else None
+                if not isinstance(methods, dict) or not 1 <= len(methods) <= 12:
+                    errors.append(f"{config_path}: dynamic methods must contain 1..12 entries")
+                else:
+                    dynamic_count = 0
+                    for name, entry in methods.items():
+                        if not isinstance(name, str) or COMMAND.fullmatch(name) is None or len(name) > 24 or name in seen:
+                            errors.append(f"{config_path}: invalid/duplicate method name {name!r}")
+                            continue
+                        if name in {"help", "plugins", "status", "exit", "quit", "mode", "users", "jobs", "settings", "reload", "stop", "running", "clear", "history", "whoami", "version", "methods", "providers", "check", "info"}:
+                            errors.append(f"{config_path}: method name {name!r} is reserved")
+                        if not isinstance(entry, dict):
+                            errors.append(f"{config_path}: invalid method {name!r}")
+                            continue
+                        if entry.get("enabled") is True:
+                            dynamic_count += 1
+                            description = entry.get("description")
+                            if not isinstance(description, str) or not description.strip() or len(description) > 180:
+                                errors.append(f"{config_path}: invalid method description {name!r}")
+                            permitted = entry.get("permissions")
+                            if (not isinstance(permitted, list) or not permitted or
+                                    len(permitted) != len(set(map(str, permitted))) or
+                                    any(role not in roles for role in permitted)):
+                                errors.append(f"{config_path}: method {name!r} permissions must be authenticated manifest roles")
+                    if len(commands) + dynamic_count > 16:
+                        errors.append(f"{config_path}: more than 16 commands after dynamic registration")
+
     provider_path = folder / "providers.yaml"
     if provider_names or provider_path.exists():
         if not provider_path.is_file():
