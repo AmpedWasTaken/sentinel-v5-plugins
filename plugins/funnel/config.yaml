@@ -1,0 +1,42 @@
+# Funnel example configuration (simulation mode only).
+# This plugin NEVER sends attack traffic, launches jobs, or calls remote APIs.
+version: 1
+funnel:
+  command_prefix: "!"
+  kv_prefix: "-"
+  timeout_unit: second
+  timeout_seconds: 15
+  default_duration_seconds: 60
+
+  # Display-only metadata. No HTTP requests are made by this plugin.
+  user_agent: ""
+  callback_preview: true
+
+  groups:
+    - name: user
+      max_duration_seconds: 600
+      max_concurrent: 15
+    - name: operator
+      max_duration_seconds: 120
+      max_concurrent: 2
+
+  dns:
+    enabled: true
+    # Validated addresses, never queried by this plugin.
+    resolvers:
+      - "1.1.1.1"
+      - "8.8.8.8"
+
+  scenarios:
+    tcp:
+      enabled: true
+      description: "Preview a TCP capacity-test scenario (no packets transmitted)"
+    udp:
+      enabled: true
+      description: "Preview a UDP capacity-test scenario (no packets transmitted)"
+    dns:
+      enabled: true
+      description: "Preview a DNS diagnostics scenario (no lookups performed)"
+    http:
+      enabled: true
+      description: "Preview an HTTP diagnostics scenario (no requests sent)"
