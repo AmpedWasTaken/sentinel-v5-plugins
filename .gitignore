@@ -1,0 +1,27 @@
+# Local caches and build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
+.tmp/
+*.zip
+*.tar
+*.tar.gz
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store
+Thumbs.db

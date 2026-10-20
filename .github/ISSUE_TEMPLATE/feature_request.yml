@@ -1,0 +1,30 @@
+name: "Improvement request"
+description: "Propose better docs, plugin APIs, compatibility or developer tooling."
+title: "[Enhancement] "
+body:
+  - type: input
+    id: area
+    attributes:
+      label: "Area or plugin ID"
+      placeholder: "Validator, documentation, examples, my-plugin"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Current limitation"
+      description: "What is difficult or missing today?"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Suggested improvement"
+      description: "Describe your preferred behavior; alternatives are welcome."
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: "Relevant examples or references"
+      description: "Screenshots, sanitized console output or links."

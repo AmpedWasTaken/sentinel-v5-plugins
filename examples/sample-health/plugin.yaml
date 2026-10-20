@@ -1,0 +1,10 @@
+version: 1
+id: sample-health
+name: Sample Health
+description: Read-only HTTPS health report example; configure an authorized API before using.
+enabled: false
+roles: [admin, operator]
+commands:
+  - name: report
+    description: Show a configured service health report
+    provider: health
