@@ -1,6 +1,6 @@
-// C2 Relay is a bounded, offline simulation plugin for Sentinel V5.
+// C2 Relay registers provider/method mappings and read-only health checks.
 // It implements the documented one-shot JSON code-plugin protocol (v1).
-// Only fixed HTTPS health checks may access the network; no attack or target APIs.
+// Only fixed HTTPS health checks can access the network; no target-directed API calls.
 package main
 
 import (
@@ -62,12 +62,10 @@ type RelayConfig struct {
 	CallbackPreview        bool                `yaml:"callback_preview"`
 	Groups                 []Group             `yaml:"groups"`
 	DNS                    DNSConfig           `yaml:"dns"`
-	Scenarios              map[string]Scenario `yaml:"scenarios"`
 	Providers              map[string]ProviderConfig `yaml:"providers"`
 	Methods                map[string]MethodConfig   `yaml:"methods"`
 	HealthAPI              HealthAPI           `yaml:"health_api"`
-	AttackTemplate          AttackTemplate      `yaml:"attack_template"`
-}
+	}
 type Group struct {
 	Name               string `yaml:"name"`
 	MaxDurationSeconds int    `yaml:"max_duration_seconds"`
@@ -76,10 +74,6 @@ type Group struct {
 type DNSConfig struct {
 	Enabled   bool     `yaml:"enabled"`
 	Resolvers []string `yaml:"resolvers"`
-}
-type Scenario struct {
-	Enabled     bool   `yaml:"enabled"`
-	Description string `yaml:"description"`
 }
 
 func readConfig(path string) (Config, error) {
@@ -156,48 +150,20 @@ func (cfg Config) Validate() error {
 		}
 	}
 	if err := f.HealthAPI.Validate(); err != nil { return err }
-	if err := f.AttackTemplate.Validate(); err != nil { return err }
-	if len(f.Methods)>0 {
-		if err:=validateProviderMethods(f);err!=nil{return err}
-	} else if len(f.Scenarios) == 0 || len(f.Scenarios) > 8 {
-		return errors.New("configure 1..8 scenarios or configured provider-backed methods")
-	}
-	for name, scenario := range f.Scenarios {
-		if !safeSlug.MatchString(name) || len(scenario.Description) > 180 ||
-			strings.ContainsAny(scenario.Description, "\r\n\x1b") {
-			return fmt.Errorf("invalid scenario %q", name)
-		}
-	}
+	if err:=validateProviderMethods(f);err!=nil{return err}
+
 	return nil
 }
 
 func summary(f RelayConfig) string {
- if len(f.Methods)>0 {
-  enabled:=0
-  for _,m:=range f.Methods{if m.Enabled{enabled++}}
-  return fmt.Sprintf("%d groups / %d providers / %d methods / %d enabled",len(f.Groups),len(f.Providers),len(f.Methods),enabled)
- }
-	enabled := 0
-	for _, scenario := range f.Scenarios {
-		if scenario.Enabled {
-			enabled++
-		}
-	}
-	return fmt.Sprintf("%d groups / %d simulation scenarios / %d enabled", len(f.Groups), len(f.Scenarios), enabled)
-}
-
-func sortedScenarios(f RelayConfig) []string {
-	names := make([]string, 0, len(f.Scenarios))
-	for name := range f.Scenarios {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+ enabled:=0
+ for _,m:=range f.Methods{if m.Enabled{enabled++}}
+ return fmt.Sprintf("%d groups / %d providers / %d methods / %d enabled",len(f.Groups),len(f.Providers),len(f.Methods),enabled)
 }
 
 func values(mode string) map[string]string {
 	return map[string]string{
-		"mode": mode, "notice": "SIMULATION ONLY — no traffic or callbacks sent.",
+		"mode": mode, "notice": "Provider mapping only — no remote launch URLs are requested.",
 		"scenario": "—", "group": "—", "duration": "—", "concurrency": "—",
 		"timeout": "—", "dns": "—", "summary": "—",
 	}
@@ -232,45 +198,21 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds"
 		out["duration"] = strconv.Itoa(f.DefaultDurationSeconds) + " seconds (default)"
 		out["dns"] = strconv.FormatBool(f.DNS.Enabled) + " / " + strings.Join(f.DNS.Resolvers, ", ")
-		out["notice"] = fmt.Sprintf("Prefix %q / key-value prefix %q. Preview only; no runtime command router override.", f.CommandPrefix, f.KVPrefix)
+		out["notice"] = fmt.Sprintf("Prefix %q / key-value prefix %q. Provider registry only; host command routing unchanged.", f.CommandPrefix, f.KVPrefix)
 	case "methods":
-        if len(f.Methods)>0 {
-          if len(req.Args)!=0{return Result{},errors.New("methods accepts no arguments")}
-          names:=make([]string,0,len(f.Methods))
-          for name:=range f.Methods{names=append(names,name)}
-          sort.Strings(names)
-          lines:=[]string{}
-          for _,name:=range names{
-             m:=f.Methods[name]
-             if m.Enabled{lines=append(lines,fmt.Sprintf("%s → %s (minimum_success=%d, groups=%s)",name,strings.Join(m.Providers,", "),m.MinimumSuccess,strings.Join(m.Permissions,", ")))}
-          }
-          return viewResult("relay-methods",map[string]string{"summary":strings.Join(lines,"; "),"detail":"Provider mapping is declarative; no remote job launch."}),nil
+        if len(req.Args)!=0{return Result{},errors.New("methods accepts no arguments")}
+        names:=make([]string,0,len(f.Methods))
+        for name:=range f.Methods{names=append(names,name)}
+        sort.Strings(names)
+        lines:=[]string{}
+        for _,name:=range names{
+          m:=f.Methods[name]
+          if m.Enabled{lines=append(lines,fmt.Sprintf("%s: providers=%s; minimum_success=%d; groups=%s",name,strings.Join(m.Providers,","),m.MinimumSuccess,strings.Join(m.Permissions,",")))}
         }
-		if len(req.Args) != 0 {
-			return Result{}, errors.New("methods does not accept arguments")
-		}
-		names := sortedScenarios(f)
-		enabled := make([]string, 0, len(names))
-		for _, name := range names {
-			if f.Scenarios[name].Enabled {
-				enabled = append(enabled, name)
-			}
-		}
-		out["mode"] = "Scenarios"
-		viewName = "relay-methods"
-		out["detail"] = "Offline scenario names. Use preview scenario=<name> group=<name>."
-		out["summary"] = strings.Join(enabled, ", ")
-	case "template":
-		urlText, err := f.AttackTemplate.RenderPreview(req.Args, f.Groups)
-		if err != nil { return Result{}, err }
-		return viewResult("relay-preview-sent",map[string]string{
-			"target":req.Args["target"],
-			"port":req.Args["port"],
-			"duration":req.Args["duration"]+" seconds (preview)",
-			"method":req.Args["method"],
-			"group":req.Args["group"],
-			"url":urlText,
-		}),nil
+        return viewResult("relay-methods",map[string]string{
+          "summary":strings.Join(lines,"; "),
+          "detail":"Multiple providers may be configured for each method; no remote launch occurs.",
+        }),nil
 	case "providers":
         if len(req.Args)!=0{return Result{},errors.New("providers accepts no arguments")}
         names:=make([]string,0,len(f.Providers))
@@ -291,53 +233,6 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["summary"] = status
 		out["timeout"] = "1.2 seconds per approved endpoint"
 		out["notice"] = "Fixed HTTPS /health or /status GET only; no attack dispatch, targets or callbacks."
-	case "preview":
-		for key := range req.Args {
-			if key != "scenario" && key != "group" && key != "duration" {
-				return Result{}, fmt.Errorf("unsupported preview argument %q", key)
-			}
-		}
-		name := req.Args["scenario"]
-		scenario, exists := f.Scenarios[name]
-		if !exists || !scenario.Enabled {
-			return Result{}, errors.New("select an enabled scenario using scenario=<name>")
-		}
-		groupName := req.Args["group"]
-		if groupName == "" {
-			return Result{}, errors.New("select group=<name>")
-		}
-		var group *Group
-		for i := range f.Groups {
-			if f.Groups[i].Name == groupName {
-				group = &f.Groups[i]
-				break
-			}
-		}
-		if group == nil {
-			return Result{}, errors.New("unknown simulation group")
-		}
-		seconds := f.DefaultDurationSeconds
-		if raw := req.Args["duration"]; raw != "" {
-			n, err := strconv.Atoi(raw)
-			if err != nil {
-				return Result{}, errors.New("duration must be a positive number of seconds")
-			}
-			seconds = n
-		}
-		if seconds < 1 || seconds > group.MaxDurationSeconds {
-			return Result{}, fmt.Errorf("duration must be 1..%d seconds for group %s", group.MaxDurationSeconds, group.Name)
-		}
-		out["mode"] = "Scenario preview"
-		viewName = "relay-preview-sent"
-		out["target"] = "not applicable (offline scenario)"
-		out["method"] = name
-		out["port"] = "not applicable"
-		out["scenario"] = name
-		out["group"] = group.Name
-		out["duration"] = strconv.Itoa(seconds) + " seconds (simulated)"
-		out["concurrency"] = strconv.Itoa(group.MaxConcurrent) + " configured limit (no connections opened)"
-		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds (configuration only)"
-		out["summary"] = scenario.Description
 	default:
 		return Result{}, errors.New("unknown C2 Relay command; use help, info, providers, methods, tcp, udp, http, check or views")
 	}
