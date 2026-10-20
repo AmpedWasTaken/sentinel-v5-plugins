@@ -1,6 +1,6 @@
-// Funnel is a bounded, offline simulation plugin for Sentinel V5.
+// C2 Relay is a bounded, offline simulation plugin for Sentinel V5.
 // It implements the documented one-shot JSON code-plugin protocol (v1).
-// No network operations, shell execution, or attack APIs exist in this process.
+// Only fixed HTTPS health checks may access the network; no attack or target APIs.
 package main
 
 import (
@@ -50,9 +50,9 @@ type Response struct {
 
 type Config struct {
 	Version int          `yaml:"version"`
-	Funnel  FunnelConfig `yaml:"funnel"`
+	Relay   RelayConfig `yaml:"relay"`
 }
-type FunnelConfig struct {
+type RelayConfig struct {
 	CommandPrefix          string              `yaml:"command_prefix"`
 	KVPrefix               string              `yaml:"kv_prefix"`
 	TimeoutUnit            string              `yaml:"timeout_unit"`
@@ -63,6 +63,7 @@ type FunnelConfig struct {
 	Groups                 []Group             `yaml:"groups"`
 	DNS                    DNSConfig           `yaml:"dns"`
 	Scenarios              map[string]Scenario `yaml:"scenarios"`
+	HealthAPI              HealthAPI           `yaml:"health_api"`
 }
 type Group struct {
 	Name               string `yaml:"name"`
@@ -108,9 +109,9 @@ func readConfig(path string) (Config, error) {
 }
 
 func (cfg Config) Validate() error {
-	f := cfg.Funnel
+	f := cfg.Relay
 	if cfg.Version != 1 {
-		return errors.New("unsupported Funnel config version")
+		return errors.New("unsupported C2 Relay config version")
 	}
 	if len(f.CommandPrefix) != 1 || !strings.Contains("!@#$%^&*?", f.CommandPrefix) {
 		return errors.New("command_prefix must be one supported punctuation mark")
@@ -151,6 +152,7 @@ func (cfg Config) Validate() error {
 			return fmt.Errorf("invalid public resolver label %q", resolver)
 		}
 	}
+	if err := f.HealthAPI.Validate(); err != nil { return err }
 	if len(f.Scenarios) == 0 || len(f.Scenarios) > 8 {
 		return errors.New("configure 1..8 simulation scenarios")
 	}
@@ -163,7 +165,7 @@ func (cfg Config) Validate() error {
 	return nil
 }
 
-func summary(f FunnelConfig) string {
+func summary(f RelayConfig) string {
 	enabled := 0
 	for _, scenario := range f.Scenarios {
 		if scenario.Enabled {
@@ -173,7 +175,7 @@ func summary(f FunnelConfig) string {
 	return fmt.Sprintf("%d groups / %d simulation scenarios / %d enabled", len(f.Groups), len(f.Scenarios), enabled)
 }
 
-func sortedScenarios(f FunnelConfig) []string {
+func sortedScenarios(f RelayConfig) []string {
 	names := make([]string, 0, len(f.Scenarios))
 	for name := range f.Scenarios {
 		names = append(names, name)
@@ -194,7 +196,7 @@ func handle(req Request, cfg Config) (Result, error) {
 	if req.Version != protocolVersion {
 		return Result{}, errors.New("unsupported plugin protocol")
 	}
-	f := cfg.Funnel
+	f := cfg.Relay
 	out := values("Configuration")
 	if req.Args == nil {
 		req.Args = map[string]string{}
@@ -222,6 +224,14 @@ func handle(req Request, cfg Config) (Result, error) {
 		}
 		out["mode"] = "Scenarios"
 		out["summary"] = strings.Join(enabled, ", ")
+	case "check":
+		if len(req.Args) != 0 { return Result{}, errors.New("check does not accept arguments") }
+		status, err := checkHealthAPI(f.HealthAPI, f.UserAgent)
+		if err != nil { return Result{}, err }
+		out["mode"] = "Read-only health API"
+		out["summary"] = status
+		out["timeout"] = "1.2 seconds per approved endpoint"
+		out["notice"] = "Fixed HTTPS /health or /status GET only; no attack dispatch, targets or callbacks."
 	case "preview":
 		for key := range req.Args {
 			if key != "scenario" && key != "group" && key != "duration" {
@@ -266,9 +276,9 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds (configuration only)"
 		out["summary"] = scenario.Description
 	default:
-		return Result{}, errors.New("unknown Funnel command; use info, methods or preview")
+		return Result{}, errors.New("unknown C2 Relay command; use info, methods, preview or check")
 	}
-	return Result{View: "funnel-report", Values: out}, nil
+	return Result{View: "c2-relay-report", Values: out}, nil
 }
 
 func serve(in io.Reader, out io.Writer, configPath string) error {
@@ -289,7 +299,7 @@ func serve(in io.Reader, out io.Writer, configPath string) error {
 			} else {
 				cfg, configErr := readConfig(configPath)
 				if configErr != nil {
-					response.Error = fmt.Sprintf("invalid Funnel configuration: %.180s", configErr.Error())
+					response.Error = fmt.Sprintf("invalid C2 Relay configuration: %.180s", configErr.Error())
 				} else if result, handleErr := handle(req, cfg); handleErr != nil {
 					response.Error = handleErr.Error()
 				} else {
