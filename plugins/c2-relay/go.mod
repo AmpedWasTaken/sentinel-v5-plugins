@@ -1,4 +1,4 @@
-module github.com/AmpedWasTaken/sentinel-v5-plugins/plugins/funnel
+module github.com/AmpedWasTaken/sentinel-v5-plugins/plugins/c2-relay
 
 go 1.23.0
 
