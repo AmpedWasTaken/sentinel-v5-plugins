@@ -333,7 +333,11 @@ func serve(in io.Reader, out io.Writer, configPath string) error {
 				if configErr != nil {
 					response.Error = fmt.Sprintf("invalid C2 Relay configuration: %.180s", configErr.Error())
 				} else if result, handleErr := handle(req, cfg); handleErr != nil {
-					response.Error = handleErr.Error()
+					if view, ok := commandErrorView(req, handleErr); ok {
+						response.Result = view
+					} else {
+						response.Error = handleErr.Error()
+					}
 				} else {
 					response.Result = result
 				}
