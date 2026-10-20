@@ -63,6 +63,8 @@ type RelayConfig struct {
 	Groups                 []Group             `yaml:"groups"`
 	DNS                    DNSConfig           `yaml:"dns"`
 	Scenarios              map[string]Scenario `yaml:"scenarios"`
+	Providers              map[string]ProviderConfig `yaml:"providers"`
+	Methods                map[string]MethodConfig   `yaml:"methods"`
 	HealthAPI              HealthAPI           `yaml:"health_api"`
 	AttackTemplate          AttackTemplate      `yaml:"attack_template"`
 }
@@ -155,8 +157,10 @@ func (cfg Config) Validate() error {
 	}
 	if err := f.HealthAPI.Validate(); err != nil { return err }
 	if err := f.AttackTemplate.Validate(); err != nil { return err }
-	if len(f.Scenarios) == 0 || len(f.Scenarios) > 8 {
-		return errors.New("configure 1..8 simulation scenarios")
+	if len(f.Methods)>0 {
+		if err:=validateProviderMethods(f);err!=nil{return err}
+	} else if len(f.Scenarios) == 0 || len(f.Scenarios) > 8 {
+		return errors.New("configure 1..8 scenarios or configured provider-backed methods")
 	}
 	for name, scenario := range f.Scenarios {
 		if !safeSlug.MatchString(name) || len(scenario.Description) > 180 ||
@@ -168,6 +172,11 @@ func (cfg Config) Validate() error {
 }
 
 func summary(f RelayConfig) string {
+ if len(f.Methods)>0 {
+  enabled:=0
+  for _,m:=range f.Methods{if m.Enabled{enabled++}}
+  return fmt.Sprintf("%d groups / %d providers / %d methods / %d enabled",len(f.Groups),len(f.Providers),len(f.Methods),enabled)
+ }
 	enabled := 0
 	for _, scenario := range f.Scenarios {
 		if scenario.Enabled {
@@ -210,8 +219,8 @@ func handle(req Request, cfg Config) (Result, error) {
 	case "help":
 		if len(req.Args)!=0 {return Result{},errors.New("help accepts no arguments")}
 		return viewResult("relay-help",map[string]string{
-			"hint":"c2-relay info | methods | check | views",
-			"input":"c2-relay template target=example.org port=443 duration=30 method=api-health group=user",
+			"hint":"c2-relay info | providers | methods | check | views",
+			"input":"tcp target=192.0.2.10 duration=120 port=80 group=user",
 			"detail":"Only approved health GET calls are live. No attack dispatch.",
 		}),nil
 	case "info":
@@ -225,6 +234,18 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["dns"] = strconv.FormatBool(f.DNS.Enabled) + " / " + strings.Join(f.DNS.Resolvers, ", ")
 		out["notice"] = fmt.Sprintf("Prefix %q / key-value prefix %q. Preview only; no runtime command router override.", f.CommandPrefix, f.KVPrefix)
 	case "methods":
+        if len(f.Methods)>0 {
+          if len(req.Args)!=0{return Result{},errors.New("methods accepts no arguments")}
+          names:=make([]string,0,len(f.Methods))
+          for name:=range f.Methods{names=append(names,name)}
+          sort.Strings(names)
+          lines:=[]string{}
+          for _,name:=range names{
+             m:=f.Methods[name]
+             if m.Enabled{lines=append(lines,fmt.Sprintf("%s → %s (minimum_success=%d, groups=%s)",name,strings.Join(m.Providers,", "),m.MinimumSuccess,strings.Join(m.Permissions,", ")))}
+          }
+          return viewResult("relay-methods",map[string]string{"summary":strings.Join(lines,"; "),"detail":"Provider mapping is declarative; no remote job launch."}),nil
+        }
 		if len(req.Args) != 0 {
 			return Result{}, errors.New("methods does not accept arguments")
 		}
@@ -250,6 +271,16 @@ func handle(req Request, cfg Config) (Result, error) {
 			"group":req.Args["group"],
 			"url":urlText,
 		}),nil
+	case "providers":
+        if len(req.Args)!=0{return Result{},errors.New("providers accepts no arguments")}
+        names:=make([]string,0,len(f.Providers))
+        for name:=range f.Providers{names=append(names,name)}
+        sort.Strings(names)
+        lines:=[]string{}
+        for _,name:=range names{p:=f.Providers[name];lines=append(lines,fmt.Sprintf("%s: enabled=%t, endpoints=%d",name,p.Enabled,len(p.Endpoints)))}
+        return viewResult("relay-methods",map[string]string{"summary":strings.Join(lines,"; "),"detail":"Provider endpoint registry; no credentials or remote dispatch."}),nil
+    case "tcp","udp","http":
+        return configuredMethodInfo(req,f)
 	case "check":
 		if len(req.Args) != 0 { return Result{}, errors.New("check does not accept arguments") }
 		status, err := checkHealthAPI(f.HealthAPI, f.UserAgent)
@@ -308,7 +339,7 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds (configuration only)"
 		out["summary"] = scenario.Description
 	default:
-		return Result{}, errors.New("unknown C2 Relay command; use help, info, methods, preview, check, template or views")
+		return Result{}, errors.New("unknown C2 Relay command; use help, info, providers, methods, tcp, udp, http, check or views")
 	}
 	return viewResult(viewName,out), nil
 }
