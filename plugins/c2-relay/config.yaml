@@ -1,5 +1,5 @@
-# C2 Relay — administrative previews and read-only health API checks.
-# No remote attack dispatch, flooding, callbacks or user-provided target URLs.
+# C2 Relay: provider mappings. No targets or secrets are stored here.
+# Target addresses are command arguments; /testnetwork endpoints are not dispatched.
 version: 1
 relay:
   command_prefix: "!"
@@ -22,9 +22,7 @@ relay:
     enabled: true
     resolvers: ["1.1.1.1", "8.8.8.8"]
 
-  # Real HTTPS GET, fixed paths only: /health or /status.
-  # No query strings, targets, dynamic templates or arbitrary HTTP methods.
-  # Disabled until an administrator reviews and configures an authorized API.
+  # The only real network call supported is read-only GET /health or /status.
   health_api:
     enabled: false
     minimum_success: 1
@@ -32,21 +30,36 @@ relay:
       - name: primary
         url: "https://example.com/health"
 
-  # Legacy placeholders: /testnetwork sample and redacted API key for dry-run display.
-  # Never dispatched: no HTTP request to /testnetwork or /attack, no remote callback.
-  attack_template:
-    enabled: true
-    mode: preview_only
-    url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
+  # Reusable connections. Two or more providers may be bound to one method.
+  # URL templates are validated but never sent as requests.
+  providers:
+    provider_one:
+      enabled: true
+      endpoints:
+        - name: primary
+          url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
+    provider_two:
+      enabled: true
+      endpoints:
+        - name: secondary
+          url: "https://api2.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
 
-  # Terminal-only previews; no traffic leaves the host for these.
-  scenarios:
-    api-health:
+  methods:
+    tcp:
       enabled: true
-      description: "Preview an approved HTTPS health check"
-    dns-info:
+      description: "TCP method using multiple configured providers"
+      providers: [provider_one, provider_two]
+      minimum_success: 1
+      permissions: [user, operator]
+    udp:
       enabled: true
-      description: "Preview DNS resolver labels"
-    configuration:
+      description: "UDP method with provider one"
+      providers: [provider_one]
+      minimum_success: 1
+      permissions: [user]
+    http:
       enabled: true
-      description: "Preview group, duration and concurrency settings"
+      description: "HTTP method with provider two"
+      providers: [provider_two]
+      minimum_success: 1
+      permissions: [operator]

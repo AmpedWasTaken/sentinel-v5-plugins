@@ -1,7 +1,7 @@
 version: 1
 id: c2-relay
 name: C2 Relay
-description: Read-only HTTPS health API relay and offline diagnostic previews
+description: Multi-provider method configuration and fixed HTTPS health checks
 enabled: false
 roles: [admin, operator]
 runtime:
@@ -15,14 +15,20 @@ commands:
   - name: methods
     description: List available offline previews
     capability: code.invoke
-  - name: preview
-    description: Preview bounded configuration without sending traffic
+  - name: providers
+    description: Inspect configured API providers and endpoint counts
+    capability: code.invoke
+  - name: tcp
+    description: Validate dynamic TCP method arguments and provider mapping
+    capability: code.invoke
+  - name: udp
+    description: Validate dynamic UDP method arguments and provider mapping
+    capability: code.invoke
+  - name: http
+    description: Validate dynamic HTTP method arguments and provider mapping
     capability: code.invoke
   - name: check
     description: Query fixed approved HTTPS health/status endpoints
-    capability: code.invoke
-  - name: template
-    description: Render a legacy /attack URL with placeholders (dry-run only; never dispatched)
     capability: code.invoke
   - name: views
     description: Show the SML screen gallery (demo only)
