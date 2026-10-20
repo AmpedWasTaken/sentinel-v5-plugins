@@ -3,7 +3,12 @@ name: Verify C2 Relay Go code (maintainer branch only)
 on:
   push:
     branches:
+      - main
       - feat/funnel-go-yaml-simulation-20261020
+    paths:
+      - 'plugins/c2-relay/**'
+      - '.github/workflows/c2-relay-go-verify.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
