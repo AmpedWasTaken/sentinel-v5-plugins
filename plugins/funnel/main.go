@@ -273,9 +273,6 @@ func handle(req Request, cfg Config) (Result, error) {
 
 func serve(in io.Reader, out io.Writer, configPath string) error {
 	response := Response{Version: protocolVersion}
-	defer func() {
-		// A response is written explicitly below so failures remain valid JSON.
-	}()
 	bytes, err := io.ReadAll(io.LimitReader(in, maxRequestBytes+1))
 	if err != nil || len(bytes) > maxRequestBytes {
 		response.Error = "invalid plugin request size"
