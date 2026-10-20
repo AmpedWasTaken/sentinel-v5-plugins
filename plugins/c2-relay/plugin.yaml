@@ -21,3 +21,6 @@ commands:
   - name: check
     description: Query fixed approved HTTPS health/status endpoints
     capability: code.invoke
+  - name: template
+    description: Render a legacy /attack URL with placeholders (dry-run only; never dispatched)
+    capability: code.invoke
