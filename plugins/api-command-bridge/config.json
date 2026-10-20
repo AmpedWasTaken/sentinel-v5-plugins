@@ -1,0 +1,9 @@
+{
+  "endpoint": "https://api.example.com/v1/reports",
+  "allowed_host": "api.example.com",
+  "timeout_ms": 2500,
+  "query": {
+    "target": "<<$target>>",
+    "category": "<<$category>>"
+  }
+}
