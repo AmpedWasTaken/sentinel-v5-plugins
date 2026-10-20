@@ -1,20 +1,23 @@
 version: 1
-id: funnel
-name: Funnel
-description: Configurable YAML-driven command and network-test simulation preview
+id: c2-relay
+name: C2 Relay
+description: Read-only HTTPS health API relay and offline diagnostic previews
 enabled: false
 roles: [admin, operator]
 runtime:
   kind: exec
-  binary: funnel
-  timeout_ms: 3000
+  binary: c2-relay
+  timeout_ms: 5000
 commands:
   - name: info
-    description: Show the validated Funnel configuration
+    description: Show validated C2 Relay configuration
     capability: code.invoke
   - name: methods
-    description: List available simulation scenarios
+    description: List available offline previews
     capability: code.invoke
   - name: preview
-    description: Preview a bounded local-only test scenario without sending traffic
+    description: Preview bounded configuration without sending traffic
+    capability: code.invoke
+  - name: check
+    description: Query fixed approved HTTPS health/status endpoints
     capability: code.invoke
