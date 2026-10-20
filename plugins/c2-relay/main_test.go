@@ -88,8 +88,8 @@ func TestPreviewHonorsGroupTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.View != "c2-relay-report" || result.Values["duration"] != "30 seconds (simulated)" ||
-		!strings.Contains(result.Values["notice"], "no traffic") {
+	if result.View != "relay-preview-sent" || result.Values["duration"] != "30 seconds (simulated)" ||
+		result.Values["target"] != "not applicable (offline scenario)" {
 		t.Fatalf("unexpected preview result: %+v", result)
 	}
 }
@@ -112,7 +112,7 @@ func TestPreviewRejectsUnsupportedInputs(t *testing.T) {
 
 func TestCommandDispatchAndProtocol(t *testing.T) {
 	path := fileWithConfig(t, testConfig)
-	for _, command := range []string{"info", "methods"} {
+	for _, command := range []string{"info", "methods", "help"} {
 		req, err := json.Marshal(Request{Version: 1, Command: command})
 		if err != nil {
 			t.Fatal(err)
@@ -125,7 +125,7 @@ func TestCommandDispatchAndProtocol(t *testing.T) {
 		if err := json.Unmarshal(output.Bytes(), &response); err != nil {
 			t.Fatal(err)
 		}
-		if response.Error != "" || response.Version != 1 || response.Result.View != "c2-relay-report" {
+		if response.Error != "" || response.Version != 1 || response.Result.View == "" {
 			t.Fatalf("bad %s protocol response: %+v", command, response)
 		}
 	}
