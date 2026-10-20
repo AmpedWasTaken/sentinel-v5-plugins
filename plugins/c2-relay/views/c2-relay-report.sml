@@ -1,7 +1,7 @@
 <screen name="c2-relay-report" version="3">
   <column>
     <panel title="C2 RELAY / {{data.mode}}" border="round" padding="1">
-      <badge variant="outline" tone="info">LOCAL SIMULATION</badge>
+      <badge variant="outline" tone="info">READ-ONLY DIAGNOSTICS</badge>
       <field label="Scenario" key="data.scenario"/>
       <field label="Group" key="data.group"/>
       <field label="Duration" key="data.duration"/>
