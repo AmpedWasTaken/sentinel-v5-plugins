@@ -1,0 +1,14 @@
+version: 1
+id: sshwatch
+name: sshwatch
+description: "Host login session listing"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: sshwatch
+  timeout_ms: 5000
+commands:
+  - name: sessions
+    description: "Host login session listing"
+    capability: code.invoke
