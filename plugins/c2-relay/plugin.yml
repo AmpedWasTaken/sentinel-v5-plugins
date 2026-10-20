@@ -22,7 +22,3 @@ commands:
   - name: check
     description: Query administrator-approved read-only HTTPS health endpoints
     capability: code.invoke
-  - name: reload
-    description: Validate reloaded YAML and display current method bindings (admin only)
-    capability: code.invoke
-    roles: [admin]
