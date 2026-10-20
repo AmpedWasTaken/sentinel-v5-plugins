@@ -64,6 +64,8 @@ type RelayConfig struct {
 	DNS                    DNSConfig           `yaml:"dns"`
 	Providers              map[string]ProviderConfig `yaml:"providers"`
 	Methods                map[string]MethodConfig   `yaml:"methods"`
+	Scenarios              map[string]Scenario `yaml:"scenarios"`
+	AttackTemplate          AttackTemplate `yaml:"attack_template"`
 	HealthAPI              HealthAPI           `yaml:"health_api"`
 	}
 type Group struct {
@@ -74,6 +76,11 @@ type Group struct {
 type DNSConfig struct {
 	Enabled   bool     `yaml:"enabled"`
 	Resolvers []string `yaml:"resolvers"`
+}
+
+type Scenario struct {
+	Enabled bool `yaml:"enabled"`
+	Description string `yaml:"description"`
 }
 
 func readConfig(path string) (Config, error) {
@@ -150,7 +157,8 @@ func (cfg Config) Validate() error {
 		}
 	}
 	if err := f.HealthAPI.Validate(); err != nil { return err }
-	if err:=validateProviderMethods(f);err!=nil{return err}
+	if len(f.Methods)>0 {if err:=validateProviderMethods(f);err!=nil{return err}} else if len(f.Scenarios)==0 {return errors.New("configure methods or scenarios")} 
+	if err:=f.AttackTemplate.Validate();err!=nil{return err}
 
 	return nil
 }
