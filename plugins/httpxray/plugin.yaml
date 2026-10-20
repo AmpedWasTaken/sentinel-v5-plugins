@@ -1,0 +1,14 @@
+version: 1
+id: httpxray
+name: httpxray
+description: "HTTP security-header inspection"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: httpxray
+  timeout_ms: 5000
+commands:
+  - name: inspect
+    description: "HTTP security-header inspection"
+    capability: code.invoke

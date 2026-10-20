@@ -1,0 +1,14 @@
+version: 1
+id: jsonfix
+name: jsonfix
+description: "Format and validate JSON"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: jsonfix
+  timeout_ms: 5000
+commands:
+  - name: format
+    description: "Format and validate JSON"
+    capability: code.invoke

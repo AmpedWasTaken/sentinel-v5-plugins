@@ -1,0 +1,14 @@
+version: 1
+id: hookbin
+name: hookbin
+description: "Inspect pasted webhook JSON"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: hookbin
+  timeout_ms: 5000
+commands:
+  - name: inspect
+    description: "Inspect pasted webhook JSON"
+    capability: code.invoke

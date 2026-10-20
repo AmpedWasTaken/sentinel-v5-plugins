@@ -1,0 +1,14 @@
+version: 1
+id: latency
+name: latency
+description: "TCP connect timing probe"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: latency
+  timeout_ms: 5000
+commands:
+  - name: probe
+    description: "TCP connect timing probe"
+    capability: code.invoke

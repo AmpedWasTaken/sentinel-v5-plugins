@@ -1,0 +1,14 @@
+version: 1
+id: ioclookup
+name: ioclookup
+description: "DNS resolution for security indicators"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: ioclookup
+  timeout_ms: 5000
+commands:
+  - name: resolve
+    description: "DNS resolution for security indicators"
+    capability: code.invoke

@@ -1,0 +1,18 @@
+version: 1
+id: local-capacity
+name: Local Capacity
+description: "Real, bounded CPU baseline on the Sentinel host"
+enabled: false
+roles: [admin, operator]
+commands:
+  - name: cpu
+    description: "Measure local CPU SHA-256 throughput, limited to 10 seconds"
+    capability: test.run
+    test:
+      profile: local-cpu
+      target: self
+      seconds: 5
+      views:
+        running: cpu-running
+        completed: cpu-result
+        error: cpu-error
