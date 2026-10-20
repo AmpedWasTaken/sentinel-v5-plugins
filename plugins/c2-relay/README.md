@@ -1,25 +1,32 @@
-# Funnel
+# C2 Relay — Sentinel V5 plugin
 
-**Go plugin for Sentinel V5: YAML-configured network-test scenario previews.**
+**Standalone Go plugin with a readable YAML configuration, offline diagnostic previews and a narrowly scoped, read-only HTTPS health API check.**
 
-Funnel provides a familiar command/configuration interface for defining named test scenarios, user groups, DNS resolver labels, timeout settings and SML output.
+C2 Relay takes inspiration from the *configuration and administration* parts of the older Sentinel-CNC API module, but it is not an attack dispatcher. It does not support target substitution, packet floods, Qbot/Mirai, traffic generation, remote attack callbacks, arbitrary URL templates or requests chosen by SSH users.
 
-**Safety boundary:** Funnel is **simulation-only**. It does not send TCP/UDP/HTTP requests, query DNS, call attack APIs, launch background jobs or control real network load. Configured concurrency and time values are validated and displayed, not executed.
+## Features
+
+- Editable `config.yaml`: command display prefix, key-value display prefix, timeout/unit, user agent, optional callback-preview flag, groups and duration/concurrency limits.
+- Read-only `check`: actual HTTPS GET to fixed, pre-approved `/health` or `/status` endpoints (disabled by default).
+- Up to three approved endpoints and configurable minimum successful responses (HTTP 200/204).
+- Safe-by-default outbound behavior: HTTPS port 443 only, no user-supplied target/url, no query strings, no redirects, no proxies and no private/loopback DNS results.
+- Local `info`, `methods`, and `preview` commands with SML v3 terminal output.
+- Bounded parser/protocol input; Go unit tests for configuration and command handling.
 
 ## Configuration
 
-Edit `config.yaml` in the installed Funnel plugin directory:
+Edit `config.yaml`:
 
 ```yaml
 version: 1
-funnel:
+relay:
   command_prefix: "!"
   kv_prefix: "-"
   timeout_unit: second
   timeout_seconds: 15
   default_duration_seconds: 60
   user_agent: ""
-  callback_preview: true
+  callback_preview: false
 
   groups:
     - name: user
@@ -30,103 +37,93 @@ funnel:
     enabled: true
     resolvers: ["1.1.1.1", "8.8.8.8"]
 
+  health_api:
+    enabled: false
+    minimum_success: 1
+    endpoints:
+      - name: primary
+        url: "https://example.com/health"
+
   scenarios:
-    tcp:
+    api-health:
       enabled: true
-      description: "TCP capacity-test simulation"
-    dns:
-      enabled: true
-      description: "DNS diagnostics simulation"
+      description: "Preview the health check configuration"
 ```
 
-### What the fields mean
+**The example endpoint is only a placeholder.** To use the real health check, replace it with a service you operate or are authorized to query, ensure it provides a harmless `/health` or `/status` GET endpoint on HTTPS/443, then set `health_api.enabled: true`.
 
-| YAML key | Purpose |
-| --- | --- |
-| `command_prefix` | Single character for a future custom front end; **does not change Sentinel's SSH parser** |
-| `kv_prefix` | `-` or `--` metadata for front ends, not the Sentinel argument syntax |
-| `timeout_unit` | `second` |
-| `timeout_seconds` | Validated range 1–60, **no actual task timer** |
-| `default_duration_seconds` | Default preview duration 1–600 |
-| `user_agent` | Optional display-only metadata; **never attached to requests** |
-| `callback_preview` | Optional display-only flag; **never sends callbacks** |
-| `groups[].max_duration_seconds` | Limits duration accepted by the preview command |
-| `groups[].max_concurrent` | Simulated concurrency value 1–15; **no sockets opened** |
-| `dns.resolvers` | Up to four validated public IP labels; **no DNS queries performed** |
-| `scenarios` | Named preview profiles, not executable attack methods |
+The `timeout_seconds: 15` setting remains a **display-only legacy-compatible field** for offline preview scenarios. A real health check enforces **1.2 seconds per endpoint**, maximum three endpoints, and the Sentinel manifest additionally limits the whole plugin process to 5 seconds. The `user_agent` is used for fixed health GET requests when enabled.
 
-Configuration is decoded strictly: unknown YAML keys, invalid ranges, duplicate group names, unsafe resolver labels and a second YAML document are rejected.
+The display prefixes do not install a new SSH command parser: Sentinel accepts its regular `plugin-id command key=value` syntax. DNS resolver entries and configured concurrency limits are validated and displayed, but neither changes the host resolver nor launches connections. `callback_preview` is only metadata, and no callbacks are sent.
 
-## Source layout
+## Source
 
 ```text
-plugins/funnel/
+plugins/c2-relay/
   plugin.yaml
   config.yaml
+  README.md
   go.mod
   go.sum
   main.go
+  health.go
   main_test.go
-  views/funnel-report.sml
-  README.md
+  health_test.go
+  views/c2-relay-report.sml
 ```
 
-The executable implements Sentinel's existing one-shot JSON plugin protocol directly. This project is a standalone Go module and does not require access to the private Sentinel-V5 Go module to compile. It requires Go 1.23+.
+This Go program implements Sentinel's one-shot JSON plugin protocol without importing the private core SDK. Its sole external dependency is the YAML parser `gopkg.in/yaml.v3`. It has no privileged host-service capabilities.
 
-## Build for local development
+## Build and test
 
-From `plugins/funnel/`:
+With Go 1.23+:
 
 ```sh
+cd plugins/c2-relay
 go test ./...
-go build -trimpath -o funnel .
+go build -trimpath -o c2-relay .
 ```
 
-On Windows:
-
-```powershell
-go test ./...
-go build -trimpath -o funnel.exe .
-```
-
-Place the built executable in the installed plugin's `bin/` directory:
+On Windows, build as `c2-relay.exe`. Place the reviewed binary in the installed plugin's `bin/` folder alongside the source's YAML, manifest and views:
 
 ```text
-assets/plugins/funnel/
+assets/plugins/c2-relay/
   plugin.yaml
   config.yaml
-  views/funnel-report.sml
-  bin/funnel            # Linux/macOS
-  bin/funnel.exe        # Windows
+  views/c2-relay-report.sml
+  bin/c2-relay        # Linux/macOS
+  bin/c2-relay.exe    # Windows
 ```
 
-The Sentinel host must allow **trusted-code plugins**, and an administrator must review the source/binary and explicitly enable the plugin. Trusted-code execution is not a security sandbox. Follow Sentinel's [code-plugin documentation](https://github.com/AmpedWasTaken/Sentinel-V5/blob/main/docs/code-plugin-sdk.md) for host setup.
+The plugin is disabled by default. It requires a Sentinel administrator to review and trust the executable and explicitly enable trusted-code plugins at host level. **Process isolation is not an OS sandbox.**
 
-## Use over SSH
-
-Once approved and enabled, use Sentinel's **real** command syntax (`key=value`, not the display-only `!`/`-` prefix):
+## SSH commands
 
 ```text
-plugins enable funnel
-funnel info
-funnel methods
-funnel preview scenario=tcp group=user duration=30
-funnel preview scenario=dns group=operator duration=60
+plugins enable c2-relay
+c2-relay info
+c2-relay methods
+c2-relay preview scenario=api-health group=user duration=30
+c2-relay check
 ```
 
-The terminal renders a report showing simulated scenario, group, duration, maximum configured concurrency and an explicit **no traffic sent** notice.
+`check` accepts **no arguments** and uses only the fixed health endpoints in `config.yaml`. It reports how many endpoints answered successfully, without rendering their response bodies or sending user-provided parameters.
 
-**No target is accepted and nothing is sent to a remote host.** The plugin is suitable for UI prototyping, permission design and dry-run configuration review, not network performance testing or traffic generation.
+## What was retained from Sentinel-CNC?
 
-## Permissions
+The former `core/attack` code had a configurable command prefix, parsed flags, method registry, groups/limits, HTTP timeouts and callback state. This plugin only adapts the **benign control/configuration concepts**:
 
-- Sentinel roles: `admin`, `operator`
-- Required capability: `code.invoke` (the host executes a trusted one-shot plugin process)
-- Runtime permissions: Go code reads only its local `config.yaml`; it has no network, subprocess or platform-specific dependencies
-- Data storage: none; no callbacks or requests
-- OS support: source is portable Go; released binaries must be built and independently reviewed per platform
-- Secrets: none. Do not store API tokens or credentials in `config.yaml`.
+| Legacy concept | C2 Relay |
+| --- | --- |
+| Prefix, key-value prefix | YAML metadata, visible in `info` |
+| Attack methods | Named **offline previews**; no attack implementation |
+| Groups, durations, concurrency | Validated UI configuration; no connections generated |
+| API URL list, minimum success | Up to 3 fixed **read-only health** endpoints; minimum healthy responses |
+| HTTP user agent and timeout | Fixed outbound health GET user agent; 1.2s endpoint limit |
+| Attack callbacks and templated targets | **Not supported** |
 
-## Security review / publication
+For observability integrations requiring richer authenticated JSON fields, use Sentinel's existing read-only provider system rather than extending this executable to arbitrary HTTP request templates.
 
-This is a **source contribution**, not an automatically verified marketplace package. A maintainer must independently review builds and decide whether/how to release it. The existing community CI validates manifests and SML but deliberately does not execute untrusted plugin source submitted by contributors.
+## Security and compatibility
+
+Only source code is contributed to the public community repository. The automatic static PR workflow verifies source layout, YAML manifests, and SML XML; it intentionally does not run arbitrary submitted Go executables. A human must still review the binary, test in an isolated host, and approve any distribution separately. There is no automatic marketplace release or one-command install claim.
