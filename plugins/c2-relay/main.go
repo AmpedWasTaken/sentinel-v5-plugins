@@ -64,6 +64,7 @@ type RelayConfig struct {
 	DNS                    DNSConfig           `yaml:"dns"`
 	Scenarios              map[string]Scenario `yaml:"scenarios"`
 	HealthAPI              HealthAPI           `yaml:"health_api"`
+	AttackTemplate          AttackTemplate      `yaml:"attack_template"`
 }
 type Group struct {
 	Name               string `yaml:"name"`
@@ -153,6 +154,7 @@ func (cfg Config) Validate() error {
 		}
 	}
 	if err := f.HealthAPI.Validate(); err != nil { return err }
+	if err := f.AttackTemplate.Validate(); err != nil { return err }
 	if len(f.Scenarios) == 0 || len(f.Scenarios) > 8 {
 		return errors.New("configure 1..8 simulation scenarios")
 	}
@@ -224,6 +226,10 @@ func handle(req Request, cfg Config) (Result, error) {
 		}
 		out["mode"] = "Scenarios"
 		out["summary"] = strings.Join(enabled, ", ")
+	case "template":
+		urlText, err := f.AttackTemplate.RenderPreview(req.Args, f.Groups)
+		if err != nil { return Result{}, err }
+		return Result{Text: "DRY RUN ONLY — URL rendered but never requested.\n" + urlText}, nil
 	case "check":
 		if len(req.Args) != 0 { return Result{}, errors.New("check does not accept arguments") }
 		status, err := checkHealthAPI(f.HealthAPI, f.UserAgent)
@@ -276,7 +282,7 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds (configuration only)"
 		out["summary"] = scenario.Description
 	default:
-		return Result{}, errors.New("unknown C2 Relay command; use info, methods, preview or check")
+		return Result{}, errors.New("unknown C2 Relay command; use info, methods, preview, check or template")
 	}
 	return Result{View: "c2-relay-report", Values: out}, nil
 }
