@@ -24,3 +24,9 @@ commands:
   - name: template
     description: Render a legacy /attack URL with placeholders (dry-run only; never dispatched)
     capability: code.invoke
+  - name: views
+    description: Show the SML screen gallery (demo only)
+    capability: code.invoke
+  - name: help
+    description: Display command documentation in SML
+    capability: code.invoke
