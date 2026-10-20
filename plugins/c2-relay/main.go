@@ -200,15 +200,26 @@ func handle(req Request, cfg Config) (Result, error) {
 	}
 	f := cfg.Relay
 	out := values("Configuration")
+	viewName := "relay-overview"
 	if req.Args == nil {
 		req.Args = map[string]string{}
 	}
 	switch req.Command {
+	case "views":
+		return gallery(req)
+	case "help":
+		if len(req.Args)!=0 {return Result{},errors.New("help accepts no arguments")}
+		return viewResult("relay-help",map[string]string{
+			"hint":"c2-relay info | methods | check | views",
+			"input":"c2-relay template target=example.org port=443 duration=30 method=api-health group=user",
+			"detail":"Only approved health GET calls are live. No attack dispatch.",
+		}),nil
 	case "info":
 		if len(req.Args) != 0 {
 			return Result{}, errors.New("info does not accept arguments")
 		}
 		out["summary"] = summary(f)
+		viewName = "relay-overview"
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds"
 		out["duration"] = strconv.Itoa(f.DefaultDurationSeconds) + " seconds (default)"
 		out["dns"] = strconv.FormatBool(f.DNS.Enabled) + " / " + strings.Join(f.DNS.Resolvers, ", ")
@@ -225,16 +236,27 @@ func handle(req Request, cfg Config) (Result, error) {
 			}
 		}
 		out["mode"] = "Scenarios"
+		viewName = "relay-methods"
+		out["detail"] = "Offline scenario names. Use preview scenario=<name> group=<name>."
 		out["summary"] = strings.Join(enabled, ", ")
 	case "template":
 		urlText, err := f.AttackTemplate.RenderPreview(req.Args, f.Groups)
 		if err != nil { return Result{}, err }
-		return Result{Text: "DRY RUN ONLY — URL rendered but never requested.\n" + urlText}, nil
+		return viewResult("relay-preview-sent",map[string]string{
+			"target":req.Args["target"],
+			"port":req.Args["port"],
+			"duration":req.Args["duration"]+" seconds (preview)",
+			"method":req.Args["method"],
+			"group":req.Args["group"],
+			"url":urlText,
+		}),nil
 	case "check":
 		if len(req.Args) != 0 { return Result{}, errors.New("check does not accept arguments") }
 		status, err := checkHealthAPI(f.HealthAPI, f.UserAgent)
 		if err != nil { return Result{}, err }
 		out["mode"] = "Read-only health API"
+		if strings.HasPrefix(status,"HEALTHY:") {viewName="relay-health-ok"} else if strings.Contains(status,"disabled") {viewName="relay-api-disabled"} else {viewName="relay-health-degraded"}
+		out["hint"]="Review relay.health_api in config.yaml."
 		out["summary"] = status
 		out["timeout"] = "1.2 seconds per approved endpoint"
 		out["notice"] = "Fixed HTTPS /health or /status GET only; no attack dispatch, targets or callbacks."
@@ -275,6 +297,10 @@ func handle(req Request, cfg Config) (Result, error) {
 			return Result{}, fmt.Errorf("duration must be 1..%d seconds for group %s", group.MaxDurationSeconds, group.Name)
 		}
 		out["mode"] = "Scenario preview"
+		viewName = "relay-preview-sent"
+		out["target"] = "not applicable (offline scenario)"
+		out["method"] = name
+		out["port"] = "not applicable"
 		out["scenario"] = name
 		out["group"] = group.Name
 		out["duration"] = strconv.Itoa(seconds) + " seconds (simulated)"
@@ -282,9 +308,9 @@ func handle(req Request, cfg Config) (Result, error) {
 		out["timeout"] = strconv.Itoa(f.TimeoutSeconds) + " seconds (configuration only)"
 		out["summary"] = scenario.Description
 	default:
-		return Result{}, errors.New("unknown C2 Relay command; use info, methods, preview, check or template")
+		return Result{}, errors.New("unknown C2 Relay command; use help, info, methods, preview, check, template or views")
 	}
-	return Result{View: "c2-relay-report", Values: out}, nil
+	return viewResult(viewName,out), nil
 }
 
 func serve(in io.Reader, out io.Writer, configPath string) error {
