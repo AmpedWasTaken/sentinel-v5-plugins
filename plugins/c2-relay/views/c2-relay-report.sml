@@ -1,6 +1,6 @@
-<screen name="funnel-report" version="3">
+<screen name="c2-relay-report" version="3">
   <column>
-    <panel title="FUNNEL / {{data.mode}}" border="round" padding="1">
+    <panel title="C2 RELAY / {{data.mode}}" border="round" padding="1">
       <badge variant="outline" tone="info">LOCAL SIMULATION</badge>
       <field label="Scenario" key="data.scenario"/>
       <field label="Group" key="data.group"/>
