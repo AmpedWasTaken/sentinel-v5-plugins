@@ -68,7 +68,7 @@ func TestCheckCommandNoTargetOrMethodArgs(t *testing.T){
  }
  response,err:=handle(Request{Version:1,Command:"check"},cfg)
  if err!=nil{t.Fatal(err)}
- if response.View!="c2-relay-report"||!strings.Contains(response.Values["summary"],"disabled"){
+ if response.View!="relay-api-disabled"||!strings.Contains(response.Values["summary"],"disabled"){
   t.Fatalf("unexpected disabled health status: %+v",response)
  }
 }
