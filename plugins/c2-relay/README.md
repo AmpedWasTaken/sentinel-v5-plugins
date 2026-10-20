@@ -10,7 +10,7 @@ C2 Relay takes inspiration from the *configuration and administration* parts of 
 - Read-only `check`: actual HTTPS GET to fixed, pre-approved `/health` or `/status` endpoints (disabled by default).
 - Up to three approved endpoints and configurable minimum successful responses (HTTP 200/204).
 - Safe-by-default outbound behavior: HTTPS port 443 only, no user-supplied target/url, no query strings, no redirects, no proxies and no private/loopback DNS results.
-- Local `info`, `methods`, and `preview` commands with SML v3 terminal output.
+- Local `info`, `methods`, and `preview` commands with SML v2 terminal output.
 - A `template` command for previewing an encoded legacy `/attack` URL with static `<<$target>>`, `<<$port>>`, `<<$duration>>` and `<<$method>>` placeholders; **no dispatch**.
 - Bounded parser/protocol input; Go unit tests for configuration and command handling.
 
