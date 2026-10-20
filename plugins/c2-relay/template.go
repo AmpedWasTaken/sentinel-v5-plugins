@@ -50,22 +50,34 @@ func (a AttackTemplate) Validate() error {
  remaining:=previewTokenPattern.ReplaceAllString(a.URL,"value")
  if strings.Contains(remaining,"<<")||strings.Contains(remaining,">>")||
   strings.ContainsAny(remaining,"{}") {return errors.New("invalid or unresolved URL placeholder")}
- // Only query values may contain placeholders; no user value can rewrite an
- // origin, path, query parameter name, request method or HTTP headers.
+ // Only these five documented query parameters are accepted, with each
+ // placeholder as the complete value. This avoids accidental secret storage
+ // or preview templates that rewrite hosts, paths, or arbitrary arguments.
+ expected:=map[string]string{
+  "target":"<<$target>>",
+  "port":"<<$port>>",
+  "duration":"<<$duration>>",
+  "method":"<<$method>>",
+  "key":"<<$api_key>>",
+ }
+ seen:=map[string]bool{}
  parts:=strings.Split(u.RawQuery,"&")
- if len(parts)>8 {return errors.New("too many URL query fields")}
- for _,part:=range parts{
+ if len(parts)>len(expected){return errors.New("too many URL query fields")}
+ for _,part:=range parts {
   key,val,ok:=strings.Cut(part,"=")
-  if !ok||key==""||strings.ContainsAny(key,"<>")||strings.Contains(key,"%") {
-   return errors.New("preview query keys must be static")
+  want,allowed:=expected[key]
+  if !ok||!allowed||seen[key]{return errors.New("invalid or duplicate preview URL query key")}
+  seen[key]=true
+  if val!=want {
+   if key=="key"{return errors.New("API keys cannot be stored in URL templates; use <<$api_key>>")}
+   return fmt.Errorf("preview query field %q requires placeholder %s",key,want)
   }
-  if len(val)==0 {return errors.New("preview query values cannot be empty")}
-  if key=="key" && val!="<<$api_key>>" {return errors.New("never store an API key in YAML; use the redacted <<$api_key>> preview marker")}
-  if key!="key" && strings.Contains(val,"<<$api_key>>") {return errors.New("api_key marker is only valid in the key query field")}
  }
- if found["api_key"] && !strings.Contains(u.RawQuery,"key=<<$api_key>>") {
-  return errors.New("api_key marker must be the complete key query value")
+ for _,key:=range []string{"target","port","duration","method"}{
+  if !seen[key]{return fmt.Errorf("missing preview URL query field %q",key)}
  }
+ if found["api_key"]&&!seen["key"]{return errors.New("api_key marker must be in the key query field")}
+
  return nil
 }
 
