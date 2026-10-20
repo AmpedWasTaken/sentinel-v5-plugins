@@ -1,0 +1,14 @@
+version: 1
+id: docktop
+name: docktop
+description: "Read-only Docker container listing"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: docktop
+  timeout_ms: 5000
+commands:
+  - name: ps
+    description: "Read-only Docker container listing"
+    capability: code.invoke

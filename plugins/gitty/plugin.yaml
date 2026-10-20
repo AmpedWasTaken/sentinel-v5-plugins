@@ -1,0 +1,14 @@
+version: 1
+id: gitty
+name: gitty
+description: "Read-only Git repository status"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: gitty
+  timeout_ms: 5000
+commands:
+  - name: status
+    description: "Read-only Git repository status"
+    capability: code.invoke

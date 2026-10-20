@@ -1,0 +1,14 @@
+version: 1
+id: dnsdig
+name: dnsdig
+description: "DNS record lookup"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: dnsdig
+  timeout_ms: 5000
+commands:
+  - name: lookup
+    description: "DNS record lookup"
+    capability: code.invoke

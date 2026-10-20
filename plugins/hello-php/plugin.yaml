@@ -1,0 +1,14 @@
+version: 1
+id: hello-php
+name: Hello PHP
+description: "Trusted PHP example using the Sentinel code plugin API"
+enabled: false
+roles: [admin]
+runtime:
+  kind: php
+  entry: main.php
+  timeout_ms: 2500
+commands:
+  - name: greet
+    description: "Render a greeting from custom PHP code"
+    capability: code.invoke

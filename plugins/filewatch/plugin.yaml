@@ -1,0 +1,14 @@
+version: 1
+id: filewatch
+name: filewatch
+description: "SHA-256 integrity digest for curated host logs"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: filewatch
+  timeout_ms: 5000
+commands:
+  - name: hash
+    description: "SHA-256 integrity digest for curated host logs"
+    capability: code.invoke

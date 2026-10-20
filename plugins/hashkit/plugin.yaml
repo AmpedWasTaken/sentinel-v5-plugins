@@ -1,0 +1,14 @@
+version: 1
+id: hashkit
+name: hashkit
+description: "SHA-256 text digest"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: hashkit
+  timeout_ms: 5000
+commands:
+  - name: digest
+    description: "SHA-256 text digest"
+    capability: code.invoke
