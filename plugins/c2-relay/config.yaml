@@ -1,16 +1,14 @@
-# Funnel example configuration (simulation mode only).
-# This plugin NEVER sends attack traffic, launches jobs, or calls remote APIs.
+# C2 Relay — administrative previews and read-only health API checks.
+# No remote attack dispatch, flooding, callbacks or user-provided target URLs.
 version: 1
-funnel:
+relay:
   command_prefix: "!"
   kv_prefix: "-"
   timeout_unit: second
   timeout_seconds: 15
   default_duration_seconds: 60
-
-  # Display-only metadata. No HTTP requests are made by this plugin.
   user_agent: ""
-  callback_preview: true
+  callback_preview: false
 
   groups:
     - name: user
@@ -22,21 +20,26 @@ funnel:
 
   dns:
     enabled: true
-    # Validated addresses, never queried by this plugin.
-    resolvers:
-      - "1.1.1.1"
-      - "8.8.8.8"
+    resolvers: ["1.1.1.1", "8.8.8.8"]
 
+  # Real HTTPS GET, fixed paths only: /health or /status.
+  # No query strings, targets, dynamic templates or arbitrary HTTP methods.
+  # Disabled until an administrator reviews and configures an authorized API.
+  health_api:
+    enabled: false
+    minimum_success: 1
+    endpoints:
+      - name: primary
+        url: "https://example.com/health"
+
+  # Terminal-only previews; no traffic leaves the host for these.
   scenarios:
-    tcp:
+    api-health:
       enabled: true
-      description: "Preview a TCP capacity-test scenario (no packets transmitted)"
-    udp:
+      description: "Preview an approved HTTPS health check"
+    dns-info:
       enabled: true
-      description: "Preview a UDP capacity-test scenario (no packets transmitted)"
-    dns:
+      description: "Preview DNS resolver labels"
+    configuration:
       enabled: true
-      description: "Preview a DNS diagnostics scenario (no lookups performed)"
-    http:
-      enabled: true
-      description: "Preview an HTTP diagnostics scenario (no requests sent)"
+      description: "Preview group, duration and concurrency settings"
