@@ -1,0 +1,26 @@
+# The worker starts listening when this plugin is enabled.
+# Default: local HTTP only. Use a trusted reverse proxy for public access,
+# or configure HTTPS + allow_public: true on a non-loopback IP.
+version: 1
+listen: "127.0.0.1:8088"
+allow_public: false
+tls:
+  enabled: false
+  cert_file: ""
+  key_file: ""
+rate_limit:
+  requests_per_minute: 120
+  burst: 30
+sites:
+  - host: "*"
+    root: "./public"
+    spa_fallback: false
+routes:
+  - path: /api/version
+    kind: json
+    status: 200
+    body: '{"service":"sentinel-webserver","api":"v1","healthy":true}'
+  - path: /robots.txt
+    kind: text
+    status: 200
+    body: "User-agent: *\nDisallow: /"
