@@ -10,7 +10,7 @@ import (
 )
 
 const testConfig = `version: 1
-funnel:
+relay:
   command_prefix: "!"
   kv_prefix: "-"
   timeout_unit: second
@@ -54,8 +54,8 @@ func configForTest(t *testing.T) Config {
 
 func TestLoadConfig(t *testing.T) {
 	c := configForTest(t)
-	if c.Funnel.CommandPrefix != "!" || len(c.Funnel.DNS.Resolvers) != 2 ||
-		c.Funnel.Groups[0].MaxConcurrent != 15 {
+	if c.Relay.CommandPrefix != "!" || len(c.Relay.DNS.Resolvers) != 2 ||
+		c.Relay.Groups[0].MaxConcurrent != 15 {
 		t.Fatalf("parsed unexpected config: %+v", c)
 	}
 }
@@ -88,7 +88,7 @@ func TestPreviewHonorsGroupTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.View != "funnel-report" || result.Values["duration"] != "30 seconds (simulated)" ||
+	if result.View != "c2-relay-report" || result.Values["duration"] != "30 seconds (simulated)" ||
 		!strings.Contains(result.Values["notice"], "no traffic") {
 		t.Fatalf("unexpected preview result: %+v", result)
 	}
@@ -125,7 +125,7 @@ func TestCommandDispatchAndProtocol(t *testing.T) {
 		if err := json.Unmarshal(output.Bytes(), &response); err != nil {
 			t.Fatal(err)
 		}
-		if response.Error != "" || response.Version != 1 || response.Result.View != "funnel-report" {
+		if response.Error != "" || response.Version != 1 || response.Result.View != "c2-relay-report" {
 			t.Fatalf("bad %s protocol response: %+v", command, response)
 		}
 	}
