@@ -1,0 +1,53 @@
+name: "Bug report"
+description: "Report a public, non-sensitive defect in a community plugin, example, or docs."
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "For security vulnerabilities, use SECURITY.md and report privately."
+  - type: input
+    id: plugin
+    attributes:
+      label: "Plugin ID or affected area"
+      placeholder: "my-plugin / validator / documentation"
+    validations:
+      required: true
+  - type: input
+    id: sentinel_version
+    attributes:
+      label: "Sentinel version / commit"
+      placeholder: "Commit SHA or release, if relevant"
+  - type: dropdown
+    id: platform
+    attributes:
+      label: "Platform"
+      options:
+        - "Linux"
+        - "Windows"
+        - "macOS"
+        - "Multiple / unknown"
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce"
+      description: "Provide safe, minimal steps without secrets or customer data."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+      description: "Redact tokens, addresses, usernames and private data from logs."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Additional context / sanitized logs"
+      render: text

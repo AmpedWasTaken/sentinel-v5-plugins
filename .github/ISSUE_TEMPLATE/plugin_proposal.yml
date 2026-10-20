@@ -1,0 +1,68 @@
+name: "Plugin proposal"
+description: "Suggest a new community plugin or discuss an implementation before opening a PR."
+title: "[Plugin] "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for your idea! Proposals are not automatic marketplace listings."
+  - type: input
+    id: plugin_name
+    attributes:
+      label: "Proposed plugin name"
+      placeholder: "e.g. Service Health"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Category"
+      options:
+        - "Monitoring and observability"
+        - "Server administration"
+        - "Developer tools"
+        - "Security and defense"
+        - "Integrations"
+        - "Terminal UI / SML"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem or use case"
+      description: "What problem does this plugin solve, and who would use it?"
+      placeholder: "Describe the legitimate workflow."
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: "Commands and expected behavior"
+      description: "Show a few concrete commands or expected terminal views."
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: "Expected permissions and external integrations"
+      description: "Which roles, files, host capabilities, APIs, or services would be needed?"
+      placeholder: "Read-only HTTPS GET; admin role; no local file writes"
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: "Suggested runtime"
+      options:
+        - "Declarative provider (no executable)"
+        - "Go / compiled executable"
+        - "PHP CLI"
+        - "Persistent RPC worker"
+        - "Not sure"
+  - type: checkboxes
+    id: authorization
+    attributes:
+      label: "Responsible use"
+      options:
+        - label: "This proposal describes authorized, legitimate functionality and does not require credential theft, destructive behavior, or unsolicited attack traffic."
+          required: true

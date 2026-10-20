@@ -1,0 +1,37 @@
+name: Validate community plugin contributions
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-validation:
+    name: Manifest, SML and layout checks (no plugin execution)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install validator dependency
+        run: python -m pip install PyYAML==6.0.2
+      - name: Validate source plugin folders
+        run: python scripts/validate_plugins.py
+      - name: Run validator regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Explain security scope
+        run: |
+          echo "Manifest/static checks passed. Community plugin code was NOT executed."
+          echo "Human source, dependency and release artifact review remains required."
