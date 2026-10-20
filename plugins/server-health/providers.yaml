@@ -1,0 +1,29 @@
+version: 1
+providers:
+  health:
+    enabled: true
+    description: "HTTPS JSON health report for an authorized server"
+    roles: [admin, operator, viewer]
+    request:
+      method: GET
+      url: "https://api.example.com/v1/metrics"
+      auth:
+        type: bearer
+        token_env: SENTINEL_SERVER_HEALTH_TOKEN
+      arguments:
+        instance:
+          query: instance
+          type: string
+          required: true
+    response:
+      success:
+        path: success
+        equals: "true"
+      fields:
+        instance: data.instance
+        health: data.status
+        cpu: data.cpu_percent
+        memory: data.memory_percent
+      views:
+        success: health-report
+        error: health-error

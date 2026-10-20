@@ -1,0 +1,14 @@
+version: 1
+id: portfox
+name: portfox
+description: "Single-port TCP reachability"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: portfox
+  timeout_ms: 5000
+commands:
+  - name: check
+    description: "Single-port TCP reachability"
+    capability: code.invoke

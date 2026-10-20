@@ -1,0 +1,15 @@
+version: 1
+id: rpc-counter
+name: Persistent Counter
+description: "Real Go RPC demonstration with brokered persistent storage and events"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec-rpc
+  binary: rpc-counter
+  timeout_ms: 4000
+  capabilities: [storage.get, storage.put, events.publish, ui.publish, server.metrics]
+commands:
+  - name: counter
+    description: Increment a persistent server-side counter
+    capability: code.invoke
