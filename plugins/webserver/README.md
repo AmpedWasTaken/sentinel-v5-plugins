@@ -73,6 +73,10 @@ Do not commit certificate files, keys or credentials to this repository. Store t
 
 `reload` validates the replacement YAML first and atomically swaps sites/routes/limits without closing the current listener. Listener IP/port, TLS mode/paths, and public exposure changes require `stop` followed by `start`. Certificate material changed at the same path also requires stop/start. A failed reload retains the old live config.
 
+### Sentinel host reload caveat
+
+The host's generic `plugins reload webserver` and global reload currently start a replacement worker **before** stopping the old worker. Because the old worker still owns the HTTP port, this replacement can fail with `address already in use`. Use `plugins run webserver reload` for normal site/route/rate-limit changes; it atomically refreshes the current listener. For executable updates requiring a new listener, explicitly disable and re-enable the plugin during a maintenance window. Seamless host-level process replacement would require socket handoff/reuse support in Sentinel Core.
+
 ### Security limitations
 
 - The public `/_sentinel/health` route returns only `{"status":"ok"}`. Operator metrics and logs are **not** HTTP endpoints.
