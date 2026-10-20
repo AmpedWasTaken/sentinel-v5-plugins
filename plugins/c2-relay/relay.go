@@ -317,14 +317,6 @@ func handle(req Request,cfg Config)(Result,error){
    rows=append(rows,[]string{name,state,fmt.Sprint(len(p.Endpoints)),"NOT CHECKED"})
   }
   return Result{Text:tabularOutput("PROVIDERS",[]string{"PROVIDER","STATE","ENDPOINTS","HEALTH"},rows)},nil
- case "reload":
-  if len(req.Args)>0{return Result{},errors.New("reload takes no arguments")}
-  if req.Role!="admin"{return Result{},errors.New("reload requires authenticated admin role")}
-  return Result{Text:tabularOutput("RELOAD",[]string{"RESULT","DETAIL"},[][]string{
-   {"OK","config.yml read and validated"},
-   {"Updates","New method grants/aliases visible next command"},
-   {"Restart","Not required for configuration-only updates"},
-  })},nil
  case "check":
   if len(req.Args)>0{return Result{},errors.New("check takes no arguments")}
   status,err:=checkHealthAPI(relay.HealthAPI,relay.UserAgent)
