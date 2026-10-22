@@ -3,6 +3,10 @@
 > Audit date: 2026-10-22. Source code existing in this repository is **not**
 > the same as a reviewed, installable, sandbox-compatible release.
 
+## Manual-install beta published (not marketplace-approved)
+
+**[plugins-manual-v0.1.0](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-manual-v0.1.0)** is publicly published with verified Linux/Windows builds for `c2-relay`, `webserver`, `hello-go`, Linux-only `netwatch`, cross-platform `hello-python`, and a separate SDK examples archive. CI source tests, package ZIP layout, SHA-256 checks and anonymous asset download verification passed. This is an **unsigned manual-install** prerelease, not a signed approved catalog: the command `plugins install` does not support these packages. Every plugin remains disabled until a host admin explicitly reviews, installs, and enables trusted code. `c2-relay` has no attack dispatch implementation. See [manual beta installation](MANUAL_BETA_INSTALL.md).
+
 ## Publicly published
 
 **[plugins-v0.1.0](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-v0.1.0)**
