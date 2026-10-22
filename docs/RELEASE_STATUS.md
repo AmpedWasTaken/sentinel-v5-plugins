@@ -97,7 +97,7 @@ This command path does not make the native binaries executable on Windows.
 
 - `scripts/package-curated-release.py`: builds exact two-member ZIPs from an
   explicit allowlist of reviewed Linux Go plugin binaries.
-- `scripts/sign-curated-release.go`: signs exact artifact IDs and hashes with
+- `cmd/sign-curated-release/main.go`: signs exact artifact IDs and hashes with
   a persistent, operator-approved publisher seed.
 - `scripts/verify-curated-release.py`: verifies file layout, digests, signer
   metadata and emits `SHA256SUMS`.
