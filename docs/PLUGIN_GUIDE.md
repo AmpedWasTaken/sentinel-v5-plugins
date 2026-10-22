@@ -9,6 +9,7 @@ Sentinel supports declarative read-only report plugins and opt-in trusted code p
 | Approach | Manifest | Use case | Security |
 | --- | --- | --- | --- |
 | Declarative | `commands[].provider` plus `providers.yaml` | Read-only HTTPS JSON data and SML reports | No custom executable |
+| Python CLI | `runtime.kind: python`, `entry: main.py` | Python diagnostics, scripting, AI integrations | Requires reviewed Python source, interpreter and host trusted-code opt-in |
 | PHP CLI | `runtime.kind: php`, `entry: main.php` | Custom command handler | Requires host trusted-code opt-in |
 | Compiled Go/other | `runtime.kind: exec`, `binary: <id>` | One-shot command handler | Requires reviewed compiled binary and trusted-code opt-in |
 | Persistent Go/other | `runtime.kind: exec-rpc`, `binary: <id>` | Long-running stateful handler with brokered services | Requires reviewed binary; isolation remains incomplete |
@@ -113,6 +114,10 @@ my-plugin report
 ```
 
 Older installations may also support `plugins run my-plugin report`. Exact command availability is version- and plugin-dependent. Name collisions require qualifying the command with the plugin ID.
+
+## Native C from Python
+
+Python plugins can call precompiled native C libraries through `ctypes` while keeping the same Sentinel `runtime.kind: python` command protocol. The SDK includes `sentinel_native.load_c_library`, which loads a fixed library basename from the plugin's `native/` folder using an absolute path. Libraries must be built separately for each operating system and architecture and reviewed as trusted code. The [native-stats example](../plugins/native-stats/) includes real C source, Python bindings, cross-platform compilation, SML screens and end-to-end tests.
 
 ## Local test checklist
 

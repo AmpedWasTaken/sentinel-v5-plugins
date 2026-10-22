@@ -19,7 +19,7 @@ ID = re.compile(r"^[a-z][a-z0-9-]{0,47}$")
 COMMAND = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 SAFE_CAP = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 ALLOWED_ROLES = {"admin", "operator", "viewer"}
-ALLOWED_RUNTIME = {"php", "exec", "exec-rpc"}
+ALLOWED_RUNTIME = {"php", "python", "exec", "exec-rpc"}
 BAD_SUFFIXES = {".exe", ".dll", ".so", ".dylib", ".zip", ".tar", ".gz",
                 ".7z", ".rar", ".class", ".jar", ".pyc", ".wasm",
                 ".pem", ".p12", ".pfx", ".key"}
@@ -163,14 +163,22 @@ def validate_plugin(folder: Path, errors: list[str]) -> None:
     runtime = manifest.get("runtime")
     if runtime is not None:
         if not isinstance(runtime, dict) or runtime.get("kind") not in ALLOWED_RUNTIME:
-            errors.append(f"{manifest_path}: runtime.kind must be php, exec or exec-rpc")
+            errors.append(f"{manifest_path}: runtime.kind must be php, python, exec or exec-rpc")
         else:
             kind = runtime["kind"]
-            entry = runtime.get("entry") if kind == "php" else runtime.get("binary")
-            if not slug(entry) and not (kind == "php" and entry == "main.php"):
-                errors.append(f"{manifest_path}: invalid runtime entry/binary name")
-            if kind == "php" and (not isinstance(entry, str) or not (folder / entry).is_file()):
-                errors.append(f"{manifest_path}: PHP source entry is missing")
+            entry = runtime.get("entry") if kind in {"php", "python"} else runtime.get("binary")
+            if kind in {"php", "python"}:
+                suffix = ".php" if kind == "php" else ".py"
+                if (not isinstance(entry, str) or not entry.endswith(suffix)
+                        or not slug(entry[:-len(suffix)], COMMAND)
+                        or len(entry[:-len(suffix)]) > 24):
+                    errors.append(f"{manifest_path}: invalid {kind} entry point")
+                elif not (folder / entry).is_file() or (folder / entry).is_symlink():
+                    errors.append(f"{manifest_path}: {kind} source entry is missing or symlinked")
+                if runtime.get("binary") is not None:
+                    errors.append(f"{manifest_path}: interpreted plugins cannot declare runtime.binary")
+            elif not slug(entry):
+                errors.append(f"{manifest_path}: invalid runtime binary name")
             timeout = runtime.get("timeout_ms")
             if timeout is not None and (type(timeout) is not int or not 100 <= timeout <= 8000):
                 errors.append(f"{manifest_path}: timeout_ms must be between 100 and 8000")
