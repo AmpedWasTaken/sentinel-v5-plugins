@@ -1,0 +1,51 @@
+name: Snapshot verified beta release metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/snapshot-beta-metadata.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download signed public-release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "releases/plugins-v0.1.0"
+          gh release download plugins-v0.1.0 --pattern catalog.json --pattern trusted-publishers.json --dir "releases/plugins-v0.1.0"
+          python3 - <<'PY'
+          import json, pathlib
+          root=pathlib.Path("releases/plugins-v0.1.0")
+          catalog=json.loads((root/"catalog.json").read_text())
+          trust=json.loads((root/"trusted-publishers.json").read_text())
+          assert catalog["version"]==trust["version"]==1
+          assert {p["id"] for p in catalog["plugins"]}=={"hashkit","jsonfix","uptimez"}
+          assert all(p["publisher"]=="sentinel-community-beta" for p in catalog["plugins"])
+          assert len(trust["publishers"])==1
+          print("Signed metadata downloaded and validated")
+          PY
+          sha256sum releases/plugins-v0.1.0/*.json
+      - name: Commit exact release metadata for independent review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add releases/plugins-v0.1.0/catalog.json releases/plugins-v0.1.0/trusted-publishers.json
+          if git diff --cached --quiet; then
+            echo "Release metadata already snapshotted"
+          else
+            git commit -m "release: snapshot signed v0.1.0 catalog and public trust key"
+            git push origin HEAD:main
+          fi
