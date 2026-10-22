@@ -37,6 +37,14 @@ commands:
 
 `Plugin.command(name, handler)` also supports direct registration without a decorator. `Request` exposes `command`, `actor`, `role` and `args`; `Result` exposes `text`, `view` and `values`.
 
+## Calling native C/C++ from a Python plugin
+
+A Python plugin can call locally built C ABI libraries through the standard-library `ctypes` module. The companion SDK helper `sentinel_native.load_c_library(__file__, "sentinelstats")` selects `native/libsentinelstats.so` (Linux), `native/libsentinelstats.dylib` (macOS), or `native/sentinelstats.dll` (Windows), rejecting arbitrary library basenames, symlinked libraries and missing files. The plugin developer must explicitly declare `ctypes` argument and return types and compile the C source for the correct host/architecture.
+
+See [native-stats](../../plugins/native-stats/) for a fully worked Python + compiled C example, local cross-platform build script, SML output, and native integration tests. C++ functions must be exported with a C ABI (typically `extern "C"`); `ctypes` is not a general direct C++ class binding system.
+
+This helper is **not a native code sandbox**. Only administrator-reviewed compiled libraries should be loaded. It does not change Sentinel's `runtime.kind: python` or expose new privileged host-service APIs.
+
 ## Deployment
 
 The updated Sentinel binary distribution includes the SDK at `assets/sdk/python/sentinel_sdk.py` and invokes the entry point using a trusted Python interpreter with **`-I` isolated mode**. Add its absolute directory to `sys.path` explicitly in your entry point (see `plugins/hello-python/main.py`). Do not rely on `PYTHONPATH` or user site-packages.
