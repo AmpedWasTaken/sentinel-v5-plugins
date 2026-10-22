@@ -1,0 +1,108 @@
+name: Publish reviewed, installable Sentinel plugins v0.2.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - release-manifests/plugins-v0.2.0.json
+      - scripts/package-curated-release.py
+      - scripts/sign-curated-release.go
+      - scripts/verify-curated-release.py
+      - .github/workflows/publish-curated.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: curated-marketplace-v0.2.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, verify, publish approved Linux plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install manifest validator
+        run: python -m pip install PyYAML==6.0.2
+      - name: Validate all source plugin declarations
+        run: python scripts/validate_plugins.py
+      - name: Test and vet all Go sources
+        run: |
+          go test ./...
+          go vet ./...
+      - name: Refuse unsigned or temporary signing keys
+        env:
+          SENTINEL_PUBLISHER_SEED_B64: ${{ secrets.SENTINEL_PUBLISHER_SEED_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$SENTINEL_PUBLISHER_SEED_B64" ]; then
+            echo "::error::Provision a persistent trusted Ed25519 seed in SENTINEL_PUBLISHER_SEED_B64"
+            exit 1
+          fi
+      - name: Cross-compile curated no-CGO Go utilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64; do
+            goos="${target%-*}"
+            goarch="${target#*-}"
+            mkdir -p "build-plugins/$target"
+            for plugin in hashkit jsonfix hookbin; do
+              GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+                go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins/$target/$plugin" "./plugins/$plugin"
+            done
+          done
+      - name: Package exact reviewed binaries
+        run: python scripts/package-curated-release.py
+      - name: Sign all exact artifact hashes
+        env:
+          SENTINEL_PUBLISHER_SEED_B64: ${{ secrets.SENTINEL_PUBLISHER_SEED_B64 }}
+        run: go run scripts/sign-curated-release.go
+      - name: Validate every artifact and signed catalog
+        run: python scripts/verify-curated-release.py
+      - name: Publish immutable public GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="plugins-v0.2.0"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists. Never overwrite signed public artifacts."
+            exit 1
+          fi
+          gh release create "$tag" release-plugins/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Sentinel Community Plugins v0.2.0 (curated Linux beta)" \
+            --notes "Curated Linux-only v0.2: hashkit, jsonfix, hookbin. Signed Ed25519 release binaries for Linux AMD64/ARM64. Disabled by default. Requires trusted publisher key independently provisioned on each host, trusted-code opt-in, and bubblewrap isolation. Windows and host-network/admin plugins are not claimed supported."
+      - name: Verify anonymously accessible public ZIPs
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          python - <<'PY'
+          import hashlib,json,urllib.request,pathlib
+          catalog=json.loads(pathlib.Path("release-plugins/catalog.json").read_text())
+          for entry in catalog["plugins"]:
+              for a in entry["artifacts"]:
+                  req=urllib.request.Request(a["url"],headers={"User-Agent":"Sentinel-Curated-Release-Verification/1.0"})
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      data=response.read(16*1024*1024+1)
+                  assert len(data)<=16*1024*1024
+                  assert hashlib.sha256(data).hexdigest()==a["sha256"]
+                  print("Verified",entry["id"],a["os"],a["arch"])
+          PY
