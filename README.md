@@ -95,6 +95,8 @@ plugins install <id>
 plugins enable <id>
 ```
 
+A separate [manual-install beta release](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-manual-v0.1.0) now provides platform-specific C2 Relay (read-only health/metadata, no attack dispatch), Webserver, NetWatch, Hello Go, Hello Python, and SDK example archives. These ZIPs include the needed plugin views/configs but are **not signed marketplace artifacts** and require independent administrator review and explicit trusted-code opt-in; see [manual installation](docs/MANUAL_BETA_INSTALL.md).
+
 A public [v0.1.0 beta release](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-v0.1.0) already exists for `hashkit`, `jsonfix` and `uptimez`, but `uptimez` requires network access not available to Linux marketplace-managed executables. The [curated v0.2.0 candidate](docs/RELEASE_STATUS.md) introduces only self-contained Linux-compatible tools, with exact package verification and a persistent signing-key requirement. **No other source plugin is automatically installable**, and Windows managed executable activation remains blocked by the core's Linux-only sandbox policy.
 
 To use marketplace SSH commands, the administrator must first independently trust a publisher key, approve a signed catalog, and have compatible Linux bubblewrap isolation. See [Release status and installation prerequisites](docs/RELEASE_STATUS.md).
