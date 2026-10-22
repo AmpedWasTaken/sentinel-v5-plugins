@@ -1,0 +1,14 @@
+version: 1
+id: hello-python
+name: Hello Python
+description: One-shot Python plugin and SDK example
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: python
+  entry: main.py
+  timeout_ms: 2500
+commands:
+  - name: greet
+    description: Display a Python-powered greeting
+    capability: code.invoke
