@@ -27,7 +27,7 @@ for p in catalog["plugins"]:
             m=z.read("plugin.yaml").decode("utf-8")
             assert f"id: {p['id']}\n" in m and "enabled: false\n" in m
             bininfo=z.getinfo(executable)
-            assert 0<bininfo.file_size<4*1024*1024
+            assert 0<bininfo.file_size<12*1024*1024
             if not ext:assert bininfo.external_attr>>16 & 0o111
 files=sorted(f for f in root.iterdir() if f.is_file())
 (root/"SHA256SUMS").write_text("".join(

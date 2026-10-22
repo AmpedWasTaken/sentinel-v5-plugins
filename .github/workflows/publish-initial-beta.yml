@@ -6,6 +6,8 @@ on:
     paths:
       - "release-manifests/plugins-v0.1.0.json"
       - ".github/workflows/publish-initial-beta.yml"
+      - "scripts/package-initial-beta.py"
+      - "scripts/verify-initial-beta.py"
   workflow_dispatch:
 
 permissions:

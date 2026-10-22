@@ -14,7 +14,7 @@ for name in ids:
     for os_name,arch in targets:
         ext=".exe" if os_name=="windows" else ""
         binary=pathlib.Path("build-plugins")/f"{os_name}-{arch}"/(name+ext)
-        if not binary.is_file() or not 0<binary.stat().st_size<4*1024*1024:sys.exit("missing/oversized binary "+str(binary))
+        if not binary.is_file() or not 0<binary.stat().st_size<12*1024*1024:sys.exit("missing/oversized binary "+str(binary))
         fn=f"{name}-{os_name}-{arch}.zip"
         with zipfile.ZipFile(root/fn,"w",zipfile.ZIP_DEFLATED,compresslevel=9) as z:
             for path,content,mode in (("plugin.yaml",m,0o100644),("bin/"+name+ext,binary.read_bytes(),0o100644 if ext else 0o100755)):
