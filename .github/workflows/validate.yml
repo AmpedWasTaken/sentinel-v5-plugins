@@ -70,3 +70,5 @@ jobs:
         run: python -m unittest discover -s tests -p "test_python_sdk.py" -v
       - name: Compile and test C-backed Python plugin in temporary directory
         run: python -m unittest discover -s tests -p "test_native_stats.py" -v
+      - name: Compile and test PacketLens PCAP C engine in temporary directory
+        run: python -m unittest discover -s tests -p "test_packetlens.py" -v
