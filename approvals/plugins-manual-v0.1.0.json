@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "approved_on": "2026-10-22",
+  "approval_scope": "maintainer-authorized-manual-beta-distribution",
+  "state": "approved_for_manual_installation",
+  "tag": "plugins-manual-v0.1.0",
+  "release_url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-manual-v0.1.0",
+  "source_commit": "80f82e9064e1fff2ccb3b7932b09b23fb5c2508a",
+  "verification": {
+    "github_actions_run": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/actions/runs/39832193191",
+    "result": "success",
+    "checks": [
+      "source_manifest_validation",
+      "go_test_and_vet",
+      "python_unittests",
+      "compiled_binary_protocol_smoke_tests",
+      "archive_layout_and_checksums",
+      "anonymous_public_asset_hash_verification"
+    ]
+  },
+  "plugins": [
+    {
+      "id": "c2-relay",
+      "targets": [
+        "linux-amd64",
+        "linux-arm64",
+        "windows-amd64"
+      ],
+      "approval": "approved_for_manual_installation",
+      "constraints": "Provider/method metadata and read-only HTTPS health only; no attack-provider dispatch"
+    },
+    {
+      "id": "webserver",
+      "targets": [
+        "linux-amd64",
+        "linux-arm64",
+        "windows-amd64"
+      ],
+      "approval": "approved_for_manual_installation",
+      "constraints": "Default loopback listener; any public exposure requires admin-configured TLS, least-privilege deployment and separate review"
+    },
+    {
+      "id": "netwatch",
+      "targets": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "approval": "approved_for_manual_installation",
+      "constraints": "Read-only Linux host network interface telemetry"
+    },
+    {
+      "id": "hello-go",
+      "targets": [
+        "linux-amd64",
+        "linux-arm64",
+        "windows-amd64"
+      ],
+      "approval": "approved_for_manual_installation",
+      "constraints": "SDK example; no custom host privileges"
+    },
+    {
+      "id": "hello-python",
+      "targets": [
+        "any"
+      ],
+      "approval": "approved_for_manual_installation",
+      "constraints": "Python 3.10+ and Sentinel host SDK required; manually trusted interpreter"
+    }
+  ],
+  "excluded_asset": "sdk-examples.zip (developer SDK reference; not an installable plugin)",
+  "marketplace": {
+    "state": "not_approved",
+    "reason": "Current managed marketplace installer requires a signed Ed25519 catalog and exactly two ZIP members, and Linux bwrap isolation blocks host networking/files. Current Windows managed execution fails closed. This record is not a signature, publisher key, code-audit certificate, or marketplace catalog.",
+    "installer_command_supported": false
+  },
+  "deployment": {
+    "enabled_by_default": false,
+    "opt_in": "plugins.trusted_code=true and per-plugin admin enablement",
+    "install_method": "manual extraction into assets/plugins/<id>/, administrator-reviewed"
+  }
+}
