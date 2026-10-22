@@ -102,6 +102,8 @@ jobs:
                 -o "build-plugins/$target/$plugin" "./plugins/$plugin"
             done
           done
+      - name: Smoke test curated Go binaries against Sentinel JSON v1
+        run: python scripts/smoke-curated-release.py
       - name: Package and sign with TEST-ONLY ephemeral key
         shell: bash
         run: |
