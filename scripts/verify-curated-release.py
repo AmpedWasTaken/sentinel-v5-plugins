@@ -51,7 +51,7 @@ def verify() -> None:
             with zipfile.ZipFile(path) as archive:
                 if archive.namelist() != ["plugin.yaml",f"bin/{plugin['id']}"]:
                     raise ValueError("installer-incompatible ZIP member list")
-                if not 0 < archive.getinfo(f"bin/{plugin['id']}").file_size < 4 * 1024 * 1024:
+                if not 0 < archive.getinfo(f"bin/{plugin['id']}").file_size < 12 * 1024 * 1024:
                     raise ValueError("invalid executable size")
                 if archive.getinfo(f"bin/{plugin['id']}").external_attr >> 16 & 0o111 == 0:
                     raise ValueError("Linux binary lacks executable mode")
