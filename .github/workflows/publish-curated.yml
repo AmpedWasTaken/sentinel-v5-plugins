@@ -6,7 +6,7 @@ on:
     paths:
       - release-manifests/plugins-v0.2.0.json
       - scripts/package-curated-release.py
-      - scripts/sign-curated-release.go
+      - cmd/sign-curated-release/main.go
       - scripts/verify-curated-release.py
       - scripts/smoke-curated-release.py
       - .github/workflows/publish-curated.yml
@@ -74,7 +74,7 @@ jobs:
       - name: Sign all exact artifact hashes
         env:
           SENTINEL_PUBLISHER_SEED_B64: ${{ secrets.SENTINEL_PUBLISHER_SEED_B64 }}
-        run: go run scripts/sign-curated-release.go
+        run: go run ./cmd/sign-curated-release
       - name: Validate every artifact and signed catalog
         run: python scripts/verify-curated-release.py
       - name: Publish immutable public GitHub release
