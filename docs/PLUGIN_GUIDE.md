@@ -115,6 +115,10 @@ my-plugin report
 
 Older installations may also support `plugins run my-plugin report`. Exact command availability is version- and plugin-dependent. Name collisions require qualifying the command with the plugin ID.
 
+## Native C from Python
+
+Python plugins can call precompiled native C libraries through `ctypes` while keeping the same Sentinel `runtime.kind: python` command protocol. The SDK includes `sentinel_native.load_c_library`, which loads a fixed library basename from the plugin's `native/` folder using an absolute path. Libraries must be built separately for each operating system and architecture and reviewed as trusted code. The [native-stats example](../plugins/native-stats/) includes real C source, Python bindings, cross-platform compilation, SML screens and end-to-end tests.
+
 ## Local test checklist
 
 1. Run `python scripts/validate_plugins.py` and the repository unit tests.
