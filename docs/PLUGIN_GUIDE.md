@@ -9,6 +9,7 @@ Sentinel supports declarative read-only report plugins and opt-in trusted code p
 | Approach | Manifest | Use case | Security |
 | --- | --- | --- | --- |
 | Declarative | `commands[].provider` plus `providers.yaml` | Read-only HTTPS JSON data and SML reports | No custom executable |
+| Python CLI | `runtime.kind: python`, `entry: main.py` | Python diagnostics, scripting, AI integrations | Requires reviewed Python source, interpreter and host trusted-code opt-in |
 | PHP CLI | `runtime.kind: php`, `entry: main.php` | Custom command handler | Requires host trusted-code opt-in |
 | Compiled Go/other | `runtime.kind: exec`, `binary: <id>` | One-shot command handler | Requires reviewed compiled binary and trusted-code opt-in |
 | Persistent Go/other | `runtime.kind: exec-rpc`, `binary: <id>` | Long-running stateful handler with brokered services | Requires reviewed binary; isolation remains incomplete |
