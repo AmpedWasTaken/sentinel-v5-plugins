@@ -16,7 +16,7 @@ Community-maintained extensions for the Sentinel V5 SSH workspace: diagnostics, 
 
 This is the **public contribution repository** for [Sentinel V5](https://github.com/AmpedWasTaken/Sentinel-V5). Anyone can propose a plugin, contribute source code, improve SML screens, or help review existing contributions.
 
-This is also the canonical source for Sentinel's extracted example and community plugins. **This repository is not an automatically published marketplace.** A merged pull request means the source is accepted into this repository; it does **not** mean the plugin has passed a full security audit, been compiled for all platforms, or become installable from Sentinel's marketplace.
+This is also the canonical source for Sentinel's extracted example and community plugins. **This repository contains both source-only contributions and signed public releases.** Merging a pull request never automatically approves a plugin for installation. The strict runtime-compatible release list is maintained in [Release status](docs/RELEASE_STATUS.md).
 
 ### What can you build?
 
@@ -69,7 +69,7 @@ commands:
     provider: status
 ```
 
-That declarative example also requires a matching `providers.yaml` and optional SML view. For executable Go/PHP plugins, follow the linked Sentinel SDK documentation and disclose every required host capability.
+That declarative example also requires a matching `providers.yaml` and optional SML view. For executable Go/PHP/Python plugins, follow the linked Sentinel SDK documentation and disclose every required host capability.
 
 ## Validate locally
 
@@ -95,7 +95,9 @@ plugins install <id>
 plugins enable <id>
 ```
 
-**This only works after a maintainer publishes a reviewed, platform-compatible ZIP to a reachable public HTTPS host and updates the locally approved catalog with the real SHA-256.** This repository currently does not produce, approve or publish downloadable releases automatically. A pull request by itself is not an install command.
+A public [v0.1.0 beta release](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-v0.1.0) already exists for `hashkit`, `jsonfix` and `uptimez`, but `uptimez` requires network access not available to Linux marketplace-managed executables. The [curated v0.2.0 candidate](docs/RELEASE_STATUS.md) introduces only self-contained Linux-compatible tools, with exact package verification and a persistent signing-key requirement. **No other source plugin is automatically installable**, and Windows managed executable activation remains blocked by the core's Linux-only sandbox policy.
+
+To use marketplace SSH commands, the administrator must first independently trust a publisher key, approve a signed catalog, and have compatible Linux bubblewrap isolation. See [Release status and installation prerequisites](docs/RELEASE_STATUS.md).
 
 ## Review and publication
 

@@ -1,0 +1,20 @@
+{
+  "tag": "plugins-v0.2.0",
+  "version": "0.2.0",
+  "publisher": "sentinel-community-v2",
+  "plugins": [
+    "hashkit",
+    "jsonfix",
+    "hookbin"
+  ],
+  "targets": [
+    [
+      "linux",
+      "amd64"
+    ],
+    [
+      "linux",
+      "arm64"
+    ]
+  ]
+}

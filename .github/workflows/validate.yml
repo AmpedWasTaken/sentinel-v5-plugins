@@ -70,3 +70,48 @@ jobs:
         run: python -m unittest discover -s tests -p "test_python_sdk.py" -v
       - name: Compile and test C-backed Python plugin in temporary directory
         run: python -m unittest discover -s tests -p "test_native_stats.py" -v
+
+  curated-release-dry-run:
+    name: Dry-run curated Linux marketplace packaging and signing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install release manifest parser
+        run: python -m pip install PyYAML==6.0.2
+      - name: Build Linux platform executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64; do
+            os="${target%-*}"
+            arch="${target#*-}"
+            mkdir -p "build-plugins/$target"
+            for plugin in hashkit jsonfix hookbin; do
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 \
+                go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins/$target/$plugin" "./plugins/$plugin"
+            done
+          done
+      - name: Smoke test curated Go binaries against Sentinel JSON v1
+        run: python scripts/smoke-curated-release.py
+      - name: Package and sign with TEST-ONLY ephemeral key
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/package-curated-release.py
+          # Do NOT use or copy this deterministic CI-only test key to releases.
+          SENTINEL_PUBLISHER_SEED_B64="$(python -c 'import base64,hashlib; print(base64.b64encode(hashlib.sha256(b"CI-TEST-ONLY-SENTINEL-NOT-A-RELEASE-KEY").digest()).decode())')" \
+            go run scripts/sign-curated-release.go
+          python scripts/verify-curated-release.py
+      - name: Re-run offline release artifact verifier
+        run: cd release-plugins && sha256sum -c SHA256SUMS
