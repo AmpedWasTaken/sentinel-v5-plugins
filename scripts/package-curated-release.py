@@ -65,7 +65,7 @@ def package(root: Path, manifest: Path, out: Path) -> None:
             # This lane is Linux-only, deliberately excluding Windows where
             # marketplace native execution is not yet sandboxed/supported.
             binary = root / "build-plugins" / f"{os_name}-{arch}" / name
-            if not binary.is_file() or binary.is_symlink() or not 0 < binary.stat().st_size < 4 * 1024 * 1024:
+            if not binary.is_file() or binary.is_symlink() or not 0 < binary.stat().st_size < 12 * 1024 * 1024:
                 raise ValueError(f"missing, unsafe or oversized binary {binary}")
             filename = f"{name}-{os_name}-{arch}.zip"
             with zipfile.ZipFile(out / filename, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
