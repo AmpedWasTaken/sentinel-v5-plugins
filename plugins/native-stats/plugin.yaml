@@ -1,0 +1,17 @@
+version: 1
+id: native-stats
+name: Native Stats
+description: Python plugin calling a compiled C statistics library through ctypes
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: python
+  entry: main.py
+  timeout_ms: 2500
+commands:
+  - name: analyze
+    description: Analyze bounded UTF-8 bytes using native C
+    capability: code.invoke
+  - name: info
+    description: Display C ABI and Python runtime details
+    capability: code.invoke
