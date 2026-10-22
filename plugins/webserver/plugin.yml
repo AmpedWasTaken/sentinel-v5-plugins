@@ -1,0 +1,32 @@
+version: 1
+id: webserver
+name: Sentinel Web Server
+description: "Managed HTTP/HTTPS server with virtual hosts, safe static hosting, rate limits, live traffic, and hot reload"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec-rpc
+  binary: webserver
+  timeout_ms: 4500
+commands:
+  - name: status
+    description: Show listener status, TLS state, virtual hosts and traffic metrics
+    capability: code.invoke
+  - name: routes
+    description: List static sites and configured HTTP endpoints
+    capability: code.invoke
+  - name: traffic
+    description: Show recent HTTP request metadata (limit=1..20)
+    capability: code.invoke
+  - name: reload
+    description: Hot reload routes and rate limits without rebinding the listener
+    capability: code.invoke
+    roles: [admin]
+  - name: start
+    description: Start the managed web listener from the current configuration
+    capability: code.invoke
+    roles: [admin]
+  - name: stop
+    description: Stop the managed web listener gracefully
+    capability: code.invoke
+    roles: [admin]
