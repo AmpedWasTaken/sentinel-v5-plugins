@@ -8,6 +8,7 @@ on:
       - scripts/package-curated-release.py
       - scripts/sign-curated-release.go
       - scripts/verify-curated-release.py
+      - scripts/smoke-curated-release.py
       - .github/workflows/publish-curated.yml
   workflow_dispatch:
 
@@ -66,6 +67,8 @@ jobs:
                 -o "build-plugins/$target/$plugin" "./plugins/$plugin"
             done
           done
+      - name: Smoke test real compiled JSON plugin protocol
+        run: python scripts/smoke-curated-release.py
       - name: Package exact reviewed binaries
         run: python scripts/package-curated-release.py
       - name: Sign all exact artifact hashes
