@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "hashkit",
+      "publisher": "sentinel-community-beta",
+      "version": "0.1.0",
+      "artifacts": [
+        {
+          "os": "linux",
+          "arch": "amd64",
+          "sha256": "df93e65068407695089c91ac95da86d1d0a68bbe39aaef5c7c302e7cb7d98181",
+          "signature": "X8o8SoYxrasw9mrYC2HXm1BrVJJFsgcskOcU2TztJxxPCnFzSAGpqpaosOk3wBjPQc7/WdPe6BOOPWm/odq3Cw==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/hashkit-linux-amd64.zip"
+        },
+        {
+          "os": "linux",
+          "arch": "arm64",
+          "sha256": "1d7db52f7f61cf4bad3b3ded70bf115861c92f2517ee42f861ea884bcc44b052",
+          "signature": "pGyPUXRLPhhbNV5s9ViyoUe85yjqzvP4FTY2jFvzw7WUrbPG21cxapamb5sM1rdUl45DVo8NKpFc+9eHUEn7CA==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/hashkit-linux-arm64.zip"
+        },
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "sha256": "e711b2aee847f97fe686f9ef8b9f06882bad679a7bce37183911ff28dc1aec80",
+          "signature": "VqJ0sooDAynx8e2fNxHBISK/lq9lw6tUSiIJ1RFWV6gaAGsEy0xCPPL6wlMrMR5FTbYh2Z4flMPrqQPFmguMDg==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/hashkit-windows-amd64.zip"
+        }
+      ]
+    },
+    {
+      "id": "jsonfix",
+      "publisher": "sentinel-community-beta",
+      "version": "0.1.0",
+      "artifacts": [
+        {
+          "os": "linux",
+          "arch": "amd64",
+          "sha256": "4618e5e0008949392423a2d9ca8640acc53f3496071e866fe19f2e0549a47d80",
+          "signature": "7gSso7MVeIUj4uojBThKnIXvl14Kqs/xJMvcnOO3H/ZPeEgwTNbjqDFqCjCBwl2WMzz/0qUXHnk6rHLu0G9hAA==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/jsonfix-linux-amd64.zip"
+        },
+        {
+          "os": "linux",
+          "arch": "arm64",
+          "sha256": "05253946264c53cf22fb002265edbfb7201f39fe6dccf7607b9008020ff7618e",
+          "signature": "dEL4nKJKS3gBhemQ3FAGC9Brvcb98cX9AiD7p5ePJ556TD3Mb6nsmeziymQLFIQh7WML30sbysDkNJzWe2nABg==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/jsonfix-linux-arm64.zip"
+        },
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "sha256": "d9bb9a183db685568e2e5f7e45990bdaf51f80ceb6b497c32458f96e8e35877d",
+          "signature": "60i2N4qEUj0LC4K6DsN7+aH5Snhk9N9wkbZpfgTxi7IapABCIwKlpz8BQu+YH6Po5B7Gd9x1xd4p4ZpAUOdRBA==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/jsonfix-windows-amd64.zip"
+        }
+      ]
+    },
+    {
+      "id": "uptimez",
+      "publisher": "sentinel-community-beta",
+      "version": "0.1.0",
+      "artifacts": [
+        {
+          "os": "linux",
+          "arch": "amd64",
+          "sha256": "9e3da3fb903947c5fcdb17b4b930971df5e27f8312ad3ac784df9eecafc16209",
+          "signature": "dVaJ9COA+YBHoskn0jtlr89byUgUUWckc77zbhnR83veNZ/OkLtJYIcgHE2MzujAtceywVP4Gr1bM9s8FIR8CA==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/uptimez-linux-amd64.zip"
+        },
+        {
+          "os": "linux",
+          "arch": "arm64",
+          "sha256": "ecd2b685d867ec80d7d10fbaadc13dbb76675d1178152822cd78b73ffe1aee9d",
+          "signature": "7Fe1iI40dE/mmQStNCEFgDyqgOlVRVHt0Zf1nlzOlK4zvk2HZHI2GXzL40xs16fdc79ZLXzsLMz0xHKgXnLBDQ==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/uptimez-linux-arm64.zip"
+        },
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "sha256": "75c5e70c98ae56cac55d5baaabf3d63a3b81b5317851153e35f1c6c4163a58ea",
+          "signature": "RrCNcG4awq+ZOh7b07Xr7qltiSHmDSeQlk7ZmvO0sB/rWpKpWShJYlMYLcfNbypFQqK76oKCaaL5LIhyxJy2Aw==",
+          "url": "https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-v0.1.0/uptimez-windows-amd64.zip"
+        }
+      ]
+    }
+  ]
+}
