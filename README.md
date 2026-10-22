@@ -25,6 +25,7 @@ This is also the canonical source for Sentinel's extracted example and community
 | Observability | Network traffic snapshots, logs, process summaries, health dashboards |
 | SSH & server administration | Service status, deployment diagnostics, inventory reports |
 | Developer tools | Git insights, HTTP inspection, JSON utilities, environment checks |
+| Python + native C | [native-stats](plugins/native-stats/) uses `ctypes` and a real C shared library for bounded data analysis |
 | Python examples | [hello-python](plugins/hello-python/) demonstrates the one-shot Python SDK and isolated interpreter launch |
 | Security & defense | Local auditing, certificate expiry, DNS diagnostics, auth event summaries |
 | Integrations | Read-only status providers for approved external APIs |
