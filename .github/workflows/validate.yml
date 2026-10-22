@@ -112,4 +112,4 @@ jobs:
             go run scripts/sign-curated-release.go
           python scripts/verify-curated-release.py
       - name: Re-run offline release artifact verifier
-        run: sha256sum -c release-plugins/SHA256SUMS
+        run: cd release-plugins && sha256sum -c SHA256SUMS
