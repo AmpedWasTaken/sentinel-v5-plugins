@@ -1,0 +1,20 @@
+version: 1
+id: packetlens
+name: PacketLens
+description: Offline PCAP analysis using a reviewed native C engine and Python SML interface
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: python
+  entry: main.py
+  timeout_ms: 4500
+commands:
+  - name: analyze
+    description: Analyze a named local PCAP capture (Ethernet only)
+    capability: code.invoke
+  - name: list
+    description: List available approved local captures
+    capability: code.invoke
+  - name: info
+    description: Inspect the native parser capabilities
+    capability: code.invoke
