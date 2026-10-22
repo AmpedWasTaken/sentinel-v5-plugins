@@ -1,0 +1,70 @@
+name: Publish initial Sentinel community plugin beta
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "release-manifests/plugins-v0.1.0.json"
+      - ".github/workflows/publish-initial-beta.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sentinel-community-initial-beta
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, sign and publish reviewed plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Test all Go packages
+        run: |
+          go test ./...
+          go vet ./...
+      - name: Build 3 reviewed executables on 3 targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64 windows-amd64; do
+            goos=$(echo "$target" | cut -d- -f1)
+            goarch=$(echo "$target" | cut -d- -f2)
+            mkdir -p "build-plugins/$target"
+            for id in hashkit jsonfix uptimez; do
+              ext=""
+              if [ "$goos" = "windows" ]; then ext=".exe"; fi
+              GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+                go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins/$target/$id$ext" "./plugins/$id"
+            done
+          done
+      - name: Create SHA-256 pinned ZIPs
+        run: python3 scripts/package-initial-beta.py
+      - name: Sign with Ed25519
+        env:
+          SENTINEL_PUBLISHER_SEED_B64: ${{ secrets.SENTINEL_PUBLISHER_SEED_B64 }}
+        run: go run scripts/sign-marketplace.go
+      - name: Validate release contents
+        run: python3 scripts/verify-initial-beta.py
+      - name: Publish immutable PUBLIC release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view plugins-v0.1.0 >/dev/null 2>&1; then
+            echo "Release plugins-v0.1.0 already exists; not overwriting."
+            exit 1
+          fi
+          gh release create plugins-v0.1.0 release-plugins/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Sentinel Community Plugins v0.1.0 (beta)" \
+            --notes "Curated beta: hashkit, jsonfix, uptimez. Windows AMD64, Linux AMD64/ARM64. Disabled by default. Checksummed and Ed25519 signed; each operator must independently review and install trusted-publishers.json. An ephemeral signer requires re-trust for later releases."
