@@ -1,0 +1,131 @@
+name: Publish manually installed Sentinel beta plugins
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-manual-beta.yml
+      - scripts/package-manual-beta.py
+      - plugins/c2-relay/**
+      - plugins/webserver/**
+      - plugins/hello-go/**
+      - plugins/hello-python/**
+      - plugins/netwatch/**
+      - sdk/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sentinel-plugins-manual-beta-v0.1.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish manual-install beta archives
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate source and run plugin tests
+        run: |
+          python -m pip install PyYAML==6.0.2
+          python scripts/validate_plugins.py
+          go test ./...
+          go vet ./...
+          python -m unittest discover -s tests -v
+      - name: Refuse duplicate immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view plugins-manual-v0.1.0 >/dev/null 2>&1; then
+            echo "::error::The immutable manual beta tag already exists."
+            exit 1
+          fi
+      - name: Compile manually trusted Go plugins for supported platforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64 windows-amd64; do
+            os="$(echo "$target" | cut -d- -f1)"
+            arch="$(echo "$target" | cut -d- -f2)"
+            mkdir -p "build-plugins/$target"
+            for plugin in c2-relay webserver hello-go netwatch; do
+              if [[ "$os" == windows && "$plugin" == netwatch ]]; then continue; fi
+              ext=""
+              if [[ "$os" == windows ]]; then ext=".exe"; fi
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins/$target/$plugin$ext" "./plugins/$plugin"
+            done
+          done
+      - name: Verify representative live plugin JSON responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '{"version":1,"command":"info","actor":"release-review","role":"admin","args":{}}' | \
+            (cd plugins/c2-relay && ../../build-plugins/linux-amd64/c2-relay) | \
+            python -c 'import json,sys; r=json.load(sys.stdin); assert r["version"]==1 and not r.get("error") and "no launch request" not in r["result"]["text"].lower()'
+          printf '{"version":1,"command":"greet","actor":"release-review","role":"admin","args":{"name":"Sentinel"}}' | \
+            build-plugins/linux-amd64/hello-go | \
+            python -c 'import json,sys; r=json.load(sys.stdin); assert r["result"]["view"]=="greeting"'
+      - name: Package exact plugin dependencies and SDK examples
+        run: python scripts/package-manual-beta.py
+      - name: Verify archive content and digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd manual-release && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import json, pathlib, zipfile
+          root=pathlib.Path("manual-release")
+          m=json.loads((root/"manifest.json").read_text())
+          assert m["marketplace_installable"] is False and m["signed"] is False
+          assert len(m["artifacts"])==13, len(m["artifacts"])
+          for artifact in m["artifacts"]:
+              path=root/artifact["file"]
+              with zipfile.ZipFile(path) as z:
+                  names=z.namelist()
+                  assert len(names)==len(set(names))
+                  assert all(not n.startswith("/") and ".." not in pathlib.PurePosixPath(n).parts for n in names)
+                  if artifact["plugin"] not in ("developer-sdk",):
+                      assert ("plugin.yml" in names) != ("plugin.yaml" in names)
+                      if artifact["os"] != "any": assert "bin/" + artifact["plugin"] + (".exe" if artifact["os"]=="windows" else "") in names
+          print("All manual beta archives are self-consistent.")
+          PY
+      - name: Publish immutable GitHub prerelease for manual installation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create plugins-manual-v0.1.0 manual-release/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Sentinel V5 manual plugin beta: C2 Relay, Webserver and examples" \
+            --notes "Manual-install beta packages: c2-relay, webserver, netwatch (Linux only), hello-go and hello-python, with a separate SDK examples archive. Platform-specific builds include all required plugin views and default configuration. NOT signed marketplace artifacts: 'plugins install' does not support these ZIPs. Unzip into assets/plugins/<id> after independent review, with trusted-code opt-in and a least-privileged Sentinel service account. C2 Relay supports only provider metadata and read-only HTTPS health/status; it never dispatches attacks. Webserver binds only 127.0.0.1 by default. Do not treat checksums alone as signing or sandbox validation."
+      - name: Verify anonymous public plugin downloads and SHA-256
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request
+          base="https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/download/plugins-manual-v0.1.0/"
+          manifest=json.loads(pathlib.Path("manual-release/manifest.json").read_text())
+          for artifact in manifest["artifacts"]:
+              request=urllib.request.Request(base+artifact["file"],headers={"User-Agent":"Sentinel-Manual-Beta/1"})
+              with urllib.request.urlopen(request,timeout=30) as response:
+                  raw=response.read(16*1024*1024+1)
+              assert 0<len(raw)<16*1024*1024
+              assert hashlib.sha256(raw).hexdigest()==artifact["sha256"]
+              print("Verified",artifact["file"])
+          PY
