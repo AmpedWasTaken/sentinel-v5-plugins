@@ -1,0 +1,35 @@
+name: Verify anonymous public beta plugin downloads
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-public-beta.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all catalog artifact URLs without GitHub authentication
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,urllib.request,pathlib
+          catalog=json.loads(pathlib.Path("releases/plugins-v0.1.0/catalog.json").read_text())
+          for plugin in catalog["plugins"]:
+              for a in plugin["artifacts"]:
+                  req=urllib.request.Request(a["url"],headers={"User-Agent":"Sentinel-Public-Release-Verification/1.0"})
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      payload=response.read(16*1024*1024+1)
+                      final=response.geturl()
+                  assert len(payload)<=16*1024*1024
+                  assert hashlib.sha256(payload).hexdigest()==a["sha256"],a["url"]
+                  print(plugin["id"],a["os"],a["arch"],"OK",len(payload),"bytes",final.split("?")[0])
+          print("All 9 release ZIPs are reachable anonymously and match the approved catalog.")
+          PY
