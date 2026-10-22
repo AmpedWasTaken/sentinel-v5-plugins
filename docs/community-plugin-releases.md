@@ -30,7 +30,7 @@ go test ./...
 go vet ./...
 # Build binaries at build-plugins/linux-{amd64,arm64}/<plugin>
 python scripts/package-curated-release.py
-SENTINEL_PUBLISHER_SEED_B64="<from-approved-secret-store>" go run scripts/sign-curated-release.go
+SENTINEL_PUBLISHER_SEED_B64="<from-approved-secret-store>" go run ./cmd/sign-curated-release
 python scripts/verify-curated-release.py
 (cd release-plugins && sha256sum -c SHA256SUMS)
 ```

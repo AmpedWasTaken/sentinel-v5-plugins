@@ -111,7 +111,7 @@ jobs:
           python scripts/package-curated-release.py
           # Do NOT use or copy this deterministic CI-only test key to releases.
           SENTINEL_PUBLISHER_SEED_B64="$(python -c 'import base64,hashlib; print(base64.b64encode(hashlib.sha256(b"CI-TEST-ONLY-SENTINEL-NOT-A-RELEASE-KEY").digest()).decode())')" \
-            go run scripts/sign-curated-release.go
+            go run ./cmd/sign-curated-release
           python scripts/verify-curated-release.py
       - name: Re-run offline release artifact verifier
         run: cd release-plugins && sha256sum -c SHA256SUMS
