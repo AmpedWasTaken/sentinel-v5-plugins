@@ -3,9 +3,11 @@
 > Audit date: 2026-10-22. Source code existing in this repository is **not**
 > the same as a reviewed, installable, sandbox-compatible release.
 
-## Manual-install beta published (not marketplace-approved)
+## Approved manual-install beta (not marketplace-approved)
 
-**[plugins-manual-v0.1.0](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-manual-v0.1.0)** is publicly published with verified Linux/Windows builds for `c2-relay`, `webserver`, `hello-go`, Linux-only `netwatch`, cross-platform `hello-python`, and a separate SDK examples archive. CI source tests, package ZIP layout, SHA-256 checks and anonymous asset download verification passed. This is an **unsigned manual-install** prerelease, not a signed approved catalog: the command `plugins install` does not support these packages. Every plugin remains disabled until a host admin explicitly reviews, installs, and enables trusted code. `c2-relay` has no attack dispatch implementation. See [manual beta installation](MANUAL_BETA_INSTALL.md).
+Maintainer approval has been recorded for the **exact released builds** of `c2-relay`, `webserver`, `netwatch`, `hello-go`, and `hello-python` in [`approvals/plugins-manual-v0.1.0.json`](../approvals/plugins-manual-v0.1.0.json). Approval is scoped to release commit `80f82e9064e1fff2ccb3b7932b09b23fb5c2508a` after successful release CI, and permits administrator-reviewed, locally trusted installation. It is **not** a blanket approval of future updates, a complete independent security audit, automatic enablement, or marketplace approval. The host's existing security checks and platform restrictions remain in force.
+
+**[plugins-manual-v0.1.0](https://github.com/AmpedWasTaken/sentinel-v5-plugins/releases/tag/plugins-manual-v0.1.0)** is publicly published and approved **for manual installation only**, with verified Linux/Windows builds for `c2-relay`, `webserver`, `hello-go`, Linux-only `netwatch`, cross-platform `hello-python`, and a separate SDK examples archive. CI source tests, package ZIP layout, SHA-256 checks and anonymous asset download verification passed. This is an **unsigned manual-install** prerelease, not a signed approved catalog: the command `plugins install` does not support these packages. Every plugin remains disabled until a host admin explicitly reviews, installs, and enables trusted code. `c2-relay` has no attack dispatch implementation. See [manual beta installation](MANUAL_BETA_INSTALL.md).
 
 ## Publicly published
 
@@ -52,8 +54,8 @@ repository for trusted manual installation, ongoing development and review.
 | Blocker | Plugin IDs | Reason |
 | --- | --- | --- |
 | External networking | `certcheck`, `dnsdig`, `httpxray`, `ioclookup`, `latency`, `netcatty`, `portfox`, `reqr`, `snet`, `uptimez` | Current managed sandbox does not grant network namespace access; individual sources still need endpoint/SSRF reviews |
-| Host files / OS commands / monitoring | `authguard`, `docktop`, `filewatch`, `gitty`, `logtail`, `netwatch`, `pktpeek`, `servectl`, `socktop`, `sshwatch`, `sysmon`, `termfiles`, `whoiz` | Needs host resources, external binaries or privileges blocked by managed sandbox; `sysmon` without host access would misrepresent container measurements |
-| Requires additional security review | `jwtpeek`, `api-command-bridge`, `c2-relay`, `local-loadtest` | Sensitive inputs, network dispatch or traffic generation must not be mass-published without purpose-specific review, explicit constraints and enforceable isolation |
+| Host files / OS commands / monitoring | `authguard`, `docktop`, `filewatch`, `gitty`, `logtail`, `netwatch`, `pktpeek`, `servectl`, `socktop`, `sshwatch`, `sysmon`, `termfiles`, `whoiz` | `netwatch` is approved for manual Linux installation; marketplace-managed distribution still needs host resources, external binaries or privileges blocked by the existing sandbox |
+| Requires additional marketplace security review | `jwtpeek`, `api-command-bridge`, `c2-relay`, `local-loadtest` | `c2-relay` is approved for manual installation with metadata/read-only health only. Any signed managed marketplace distribution, network dispatch, or increased functionality requires separate approval, constraints and isolation. |
 | Alternative plugin packaging | `classic-ops`, `local-capacity`, `server-health`, `hello-go`, `hello-php`, `hello-python`, `native-stats`, `rpc-counter`, `webserver` | Presentation/provider plugins and PHP/Python or persistent RPC runtimes need packaging beyond the current strict two-file native installer; `hello-go` returns a missing SML view in that package format |
 
 This inventory covers the plugin source directories at the time of the audit.
