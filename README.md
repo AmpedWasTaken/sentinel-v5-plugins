@@ -18,6 +18,23 @@ This is the **public contribution repository** for [Sentinel V5](https://github.
 
 This is also the canonical source for Sentinel's extracted example and community plugins. **This repository contains both source-only contributions and signed public releases.** Merging a pull request never automatically approves a plugin for installation. The strict runtime-compatible release list is maintained in [Release status](docs/RELEASE_STATUS.md).
 
+### New community security and AI candidates
+
+Three new disabled-by-default source plugins are being reviewed:
+
+- [TrafficGuard](plugins/trafficguard/) — bounded offline access-log analysis
+  and rollback-aware, nonexecuting iptables plans.
+- [ServerWatch](plugins/serverwatch/) — read-only Linux procfs health snapshots,
+  with explicit container/host namespace limitations.
+- [Sentinel AI](plugins/sentinel-ai/) — real local-model explanation of
+  explicitly pasted diagnostics; never executes AI-suggested commands.
+
+These are **not** automatically installable from the SSH marketplace. The
+[capability and release roadmap](docs/SECURITY_MONITORING_AI_ROADMAP.md)
+documents why host metrics, firewall changes, hosting listeners and model
+traffic need brokered permissions. The existing Webserver and NetWatch source
+plugins remain the natural starting point for hosting and live traffic views.
+
 ### What can you build?
 
 | Category | Example ideas |
