@@ -1,0 +1,14 @@
+version: 1
+id: serverwatch
+name: ServerWatch
+description: "Read-only Linux CPU load, memory, uptime and process namespace snapshot"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: serverwatch
+  timeout_ms: 4000
+commands:
+  - name: snapshot
+    description: "Read kernel load average, uptime and memory counters from the visible procfs"
+    capability: code.invoke
