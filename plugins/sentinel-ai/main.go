@@ -13,6 +13,7 @@ import (
  "net/url"
  "os"
  "regexp"
+ "strconv"
  "strings"
  "time"
 
@@ -39,15 +40,16 @@ type completionResponse struct {
 func checkEndpoint(raw string)(string,error) {
  u,err:=url.Parse(raw)
  if err!=nil || u==nil{return "",errors.New("invalid local AI endpoint")}
- if u.Scheme!="http" || u.User!=nil || u.RawQuery!="" || u.Fragment!="" || u.Path!="/v1/chat/completions"{
+ if u.Scheme!="http" || u.User!=nil || u.RawQuery!="" || u.Fragment!="" || u.Opaque!="" ||
+  u.Path!="/v1/chat/completions" || u.EscapedPath()!="/v1/chat/completions"{
   return "",errors.New("AI endpoint must be a loopback HTTP /v1/chat/completions URL")
  }
  ip:=net.ParseIP(u.Hostname())
  if ip==nil || !ip.IsLoopback(){return "",errors.New("AI endpoint must use literal 127.0.0.1 or ::1, not a hostname")}
  port:=u.Port()
  if port==""{return "",errors.New("explicit loopback port required")}
- // net.SplitHostPort checks numeric, valid port range via LookupPort.
- number,err:=net.LookupPort("tcp",port)
+ // Require a literal numeric port. Service aliases are not accepted.
+ number,err:=strconv.Atoi(port)
  if err!=nil||number<1||number>65535{return "",errors.New("invalid AI loopback port")}
  return u.String(),nil
 }
