@@ -1,0 +1,17 @@
+version: 1
+id: sentinel-ai
+name: Sentinel AI
+description: "Explicit, read-only diagnostic explanations using a local OpenAI-compatible model"
+enabled: false
+roles: [admin]
+runtime:
+  kind: exec
+  binary: sentinel-ai
+  timeout_ms: 8000
+commands:
+  - name: ask
+    description: "Ask a local language model a question without granting it tools"
+    capability: code.invoke
+  - name: explain
+    description: "Explain an explicitly pasted diagnostic without changing the server"
+    capability: code.invoke
