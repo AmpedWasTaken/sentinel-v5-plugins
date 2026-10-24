@@ -62,6 +62,40 @@ This inventory covers the plugin source directories at the time of the audit.
 Do not conflate static validation, successful `go build`, an installer checksum
 or a green PR with production-ready distribution.
 
+## New community plugin review candidates (2026-10-24)
+
+These are **source contributions**, not published signed marketplace releases:
+
+| Candidate | What works in source | Why it is not an approved SSH release |
+| --- | --- | --- |
+| `trafficguard` | Offline combined-log analysis and iptables/ip6tables single-IP **proposals** with rollback text; never applies rules | Needs full Go/security tests, Linux sandbox smoke test, signed immutable artifact and operator trust |
+| `serverwatch` | Fixed read-only Linux procfs load, uptime and memory summary | Sandboxed counters may not reflect the managed physical server; needs `metrics.read` broker |
+| `sentinel-ai` | Explicit local OpenAI-compatible model requests with no tools or automatic context | Managed bubblewrap forbids host-loopback egress; needs `ai.generate` broker with consent and quotas |
+
+The already published Webserver and NetWatch manual beta is **unchanged**.
+To support real-time protection, a privileged firewall policy broker with
+MFA-backed approval, time limits, audit evidence, quotas and automated rollback
+is necessary; never solve this by making the marketplace worker privileged.
+See [the release roadmap](SECURITY_MONITORING_AI_ROADMAP.md).
+
+## TrafficGuard v0.3.0 signed-release candidate (not published)
+
+A separate, explicit allowlist adds `trafficguard` to the existing
+`hashkit`, `jsonfix` and `hookbin` Linux AMD64/ARM64 utilities.
+The `.github/workflows/trafficguard-v0.3.yml` workflow runs source
+validation, Go tests/vet, cross-compilation, real protocol smoke tests and
+strict two-member ZIP packaging. Pull requests use a **CI-only** signing
+key for validation; they cannot release artifacts. Public release requires
+a **manual workflow dispatch from the reviewed main branch** and the
+long-lived `SENTINEL_PUBLISHER_SEED_B64` repository secret.
+
+Do not advertise `plugins install trafficguard` as usable until the
+`plugins-v0.3.0` tag exists with anonymously verifiable checksums,
+the SHA-256 of `catalog.json` is independently published, and the
+approved website catalog and operators' trusted publisher policy are updated.
+The user interface must not advertise source-only `serverwatch` or
+`sentinel-ai` as installer-compatible.
+
 ## Security prerequisites for the next release
 
 1. A **persistent** Ed25519 signing seed must be installed as the repository

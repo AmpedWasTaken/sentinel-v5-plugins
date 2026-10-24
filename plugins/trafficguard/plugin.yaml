@@ -1,0 +1,17 @@
+version: 1
+id: trafficguard
+name: TrafficGuard
+description: "Analyze pasted access logs and prepare review-only single-IP firewall changes"
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: trafficguard
+  timeout_ms: 5000
+commands:
+  - name: analyze
+    description: "Summarize explicit pasted Nginx or Apache combined access logs"
+    capability: code.invoke
+  - name: block-plan
+    description: "Generate an iptables proposal and exact rollback without applying it"
+    capability: code.invoke
