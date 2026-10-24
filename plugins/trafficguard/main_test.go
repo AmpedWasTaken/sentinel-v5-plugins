@@ -23,7 +23,7 @@ func TestRejectOversizeAndInvalidLog(t *testing.T){
  if _,err:=analyzeLog("not an access log");err==nil{t.Fatal("bad logs accepted")}
 }
 func TestSingleIPPlansCannotExecute(t *testing.T){
- for _,ip:=range []string{"127.0.0.1","10.0.0.1","192.168.1.0/24","::1","8.8.8.8;rm -rf /"}{
+ for _,ip:=range []string{"127.0.0.1","10.0.0.1","192.168.1.0/24","::1","::ffff:127.0.0.1","8.8.8.8;rm -rf /"}{
   if _,err:=blockPlan(ip);err==nil{t.Errorf("unsafe address accepted: %s",ip)}
  }
  for _,ip:=range []string{"1.1.1.1","2606:4700:4700::1111"}{
