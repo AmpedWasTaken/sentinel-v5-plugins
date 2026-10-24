@@ -1,6 +1,7 @@
 package game
 
 import (
+ "fmt"
  "strings"
  "testing"
 )
@@ -56,4 +57,32 @@ func TestInvalidCommandsAndStateBoundaries(t *testing.T){
  if s.Turns!=0{t.Fatal("show must not advance physics")}
  s.Level=999
  if s.Valid(){t.Fatal("invalid level accepted")}
+}
+
+
+func TestAllWorldsAreReachableWithoutDying(t *testing.T){
+ actions:=[]string{"right","jump-right","jump","wait","left","jump-left"}
+ type node struct{s State;depth int}
+ for level:=1;level<=3;level++{
+  start:=New();start.Level=level
+  queue:=[]node{{start,0}}
+  seen:=map[string]bool{}
+  reached:=false
+  for len(queue)>0&&len(seen)<25000{
+   n:=queue[0];queue=queue[1:]
+   if n.depth>200{continue}
+   for _,action:=range actions{
+    next:=n.s
+    if err:=next.Step(action);err!=nil{t.Fatal(err)}
+    if next.Level>level||next.Won{reached=true;break}
+    if next.Over||next.Lives!=3{continue}
+    key:=fmt.Sprintf("%d/%d/%d/%d",next.X,next.Y,next.Velocity,next.Level)
+    if seen[key]{continue}
+    seen[key]=true
+    queue=append(queue,node{next,n.depth+1})
+   }
+   if reached{break}
+  }
+  if !reached{t.Fatalf("world %d has no deathless path to its flag (%d states checked)",level,len(seen))}
+ }
 }
