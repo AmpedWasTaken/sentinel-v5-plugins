@@ -62,6 +62,22 @@ This inventory covers the plugin source directories at the time of the audit.
 Do not conflate static validation, successful `go build`, an installer checksum
 or a green PR with production-ready distribution.
 
+## New community plugin review candidates (2026-10-24)
+
+These are **source contributions**, not published signed marketplace releases:
+
+| Candidate | What works in source | Why it is not an approved SSH release |
+| --- | --- | --- |
+| `trafficguard` | Offline combined-log analysis and iptables/ip6tables single-IP **proposals** with rollback text; never applies rules | Needs full Go/security tests, Linux sandbox smoke test, signed immutable artifact and operator trust |
+| `serverwatch` | Fixed read-only Linux procfs load, uptime and memory summary | Sandboxed counters may not reflect the managed physical server; needs `metrics.read` broker |
+| `sentinel-ai` | Explicit local OpenAI-compatible model requests with no tools or automatic context | Managed bubblewrap forbids host-loopback egress; needs `ai.generate` broker with consent and quotas |
+
+The already published Webserver and NetWatch manual beta is **unchanged**.
+To support real-time protection, a privileged firewall policy broker with
+MFA-backed approval, time limits, audit evidence, quotas and automated rollback
+is necessary; never solve this by making the marketplace worker privileged.
+See [the release roadmap](SECURITY_MONITORING_AI_ROADMAP.md).
+
 ## Security prerequisites for the next release
 
 1. A **persistent** Ed25519 signing seed must be installed as the repository
