@@ -70,7 +70,7 @@ func analyzeLog(input string) (string,error) {
 func blockPlan(raw string)(string,error){
  ip,err:=netip.ParseAddr(strings.TrimSpace(raw))
  if err!=nil || !ip.IsValid() || ip.Zone()!="" {return "",errors.New("ip must be one valid IPv4 or IPv6 address (no ranges or CIDR)")}
- if ip.IsUnspecified()||ip.IsLoopback()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsPrivate(){
+ if ip.Is4In6()||ip.IsUnspecified()||ip.IsLoopback()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsPrivate(){
   return "",errors.New("refusing loopback, private, multicast, link-local or unspecified address; protect management access")
  }
  binary:="iptables"
