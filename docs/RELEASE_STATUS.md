@@ -78,6 +78,24 @@ MFA-backed approval, time limits, audit evidence, quotas and automated rollback
 is necessary; never solve this by making the marketplace worker privileged.
 See [the release roadmap](SECURITY_MONITORING_AI_ROADMAP.md).
 
+## TrafficGuard v0.3.0 signed-release candidate (not published)
+
+A separate, explicit allowlist adds `trafficguard` to the existing
+`hashkit`, `jsonfix` and `hookbin` Linux AMD64/ARM64 utilities.
+The `.github/workflows/trafficguard-v0.3.yml` workflow runs source
+validation, Go tests/vet, cross-compilation, real protocol smoke tests and
+strict two-member ZIP packaging. Pull requests use a **CI-only** signing
+key for validation; they cannot release artifacts. Public release requires
+a **manual workflow dispatch from the reviewed main branch** and the
+long-lived `SENTINEL_PUBLISHER_SEED_B64` repository secret.
+
+Do not advertise `plugins install trafficguard` as usable until the
+`plugins-v0.3.0` tag exists with anonymously verifiable checksums,
+the SHA-256 of `catalog.json` is independently published, and the
+approved website catalog and operators' trusted publisher policy are updated.
+The user interface must not advertise source-only `serverwatch` or
+`sentinel-ai` as installer-compatible.
+
 ## Security prerequisites for the next release
 
 1. A **persistent** Ed25519 signing seed must be installed as the repository
