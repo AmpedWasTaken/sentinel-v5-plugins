@@ -1,0 +1,118 @@
+name: Review TrafficGuard v0.3 signed Linux candidate
+
+on:
+  pull_request:
+    paths:
+      - "plugins/trafficguard/**"
+      - "release-manifests/plugins-v0.3.0.json"
+      - "scripts/*curated-release-v0.3.py"
+      - "cmd/sign-curated-release-v0.3/**"
+      - ".github/workflows/trafficguard-v0.3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trafficguard-curated-v0.3-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    # Release is allowed only after this workflow is reviewed/merged onto main.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install static manifest validator
+        run: python -m pip install PyYAML==6.0.2
+      - name: Validate plugin manifests and Go source
+        run: |
+          python scripts/validate_plugins.py
+          go test ./...
+          go vet ./...
+      - name: Cross-compile reviewed Linux AMD64 and ARM64 binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64; do
+            goos="${target%-*}"; goarch="${target#*-}"
+            mkdir -p "build-plugins-v0.3/$target"
+            for plugin in hashkit jsonfix hookbin trafficguard; do
+              GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+                go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins-v0.3/$target/$plugin" "./plugins/$plugin"
+            done
+          done
+      - name: Exercise actual JSON protocol and package exact release layout
+        run: |
+          python scripts/smoke-curated-release-v0.3.py
+          python scripts/package-curated-release-v0.3.py
+      - name: Verify candidate using a non-release test key (PR only)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SENTINEL_PUBLISHER_SEED_B64="$(python -c 'import base64,hashlib;print(base64.b64encode(hashlib.sha256(b"CI-ONLY-v0.3-NOT-FOR-PUBLISHING").digest()).decode())')" \
+            go run ./cmd/sign-curated-release-v0.3
+          python scripts/verify-curated-release-v0.3.py
+          (cd release-plugins-v0.3 && sha256sum -c SHA256SUMS)
+      - name: Require independently provisioned permanent signing key (release only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          SENTINEL_PUBLISHER_SEED_B64: ${{ secrets.SENTINEL_PUBLISHER_SEED_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SENTINEL_PUBLISHER_SEED_B64" ]; then
+            echo "::error::Persistent trusted publisher key not configured"
+            exit 1
+          fi
+          go run ./cmd/sign-curated-release-v0.3
+          python scripts/verify-curated-release-v0.3.py
+          (cd release-plugins-v0.3 && sha256sum -c SHA256SUMS)
+      - name: Publish immutable GitHub release (manual main dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="plugins-v0.3.0"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists; never overwrite signed artifacts"
+            exit 1
+          fi
+          gh release create "$tag" release-plugins-v0.3/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Sentinel Community Plugins v0.3.0 (curated Linux beta)" \
+            --notes "Reviewed Linux-only catalog: hashkit, jsonfix, hookbin and TrafficGuard. TrafficGuard analyzes pasted logs and generates offline firewall proposals only; it never modifies iptables. Requires independently pinned publisher key, operator consent, trusted-code opt-in and Linux bubblewrap. ServerWatch and Sentinel AI are intentionally excluded until host capability brokers are available."
+      - name: Verify anonymous downloaded ZIP checksums after release
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request
+          catalog=json.loads(pathlib.Path("release-plugins-v0.3/catalog.json").read_text())
+          for entry in catalog["plugins"]:
+              for a in entry["artifacts"]:
+                  req=urllib.request.Request(a["url"],headers={"User-Agent":"Sentinel-v0.3-Public-Release-Check"})
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      data=response.read(16*1024*1024+1)
+                  if len(data)>16*1024*1024 or hashlib.sha256(data).hexdigest()!=a["sha256"]:
+                      raise SystemExit("Published release checksum mismatch: "+entry["id"])
+                  print("Verified",entry["id"],a["os"],a["arch"])
+          PY
