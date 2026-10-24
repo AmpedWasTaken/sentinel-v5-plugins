@@ -1,0 +1,39 @@
+version: 1
+id: mario-arcade
+name: Sentinel Jump Arcade
+description: Original Mario-style SSH platformer with shared saved progress
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec-rpc
+  binary: mario-arcade
+  timeout_ms: 4000
+  capabilities: [storage.get, storage.put]
+commands:
+  - name: play
+    description: Enter the shared side-scrolling platformer
+    capability: code.invoke
+  - name: left
+    description: Move left one tick
+    capability: code.invoke
+  - name: right
+    description: Move right one tick
+    capability: code.invoke
+  - name: jump
+    description: Jump in place
+    capability: code.invoke
+  - name: jump-left
+    description: Jump while moving left
+    capability: code.invoke
+  - name: jump-right
+    description: Jump while moving right
+    capability: code.invoke
+  - name: wait
+    description: Advance physics without walking
+    capability: code.invoke
+  - name: show
+    description: Show current game board without advancing time
+    capability: code.invoke
+  - name: new
+    description: Start a fresh shared game
+    capability: code.invoke
