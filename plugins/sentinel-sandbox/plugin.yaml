@@ -1,0 +1,23 @@
+version: 1
+id: sentinel-sandbox
+name: Sentinel Sandbox
+description: "Read-only sandbox policy and readiness preview (execution unavailable until secure broker/runner exist)"
+enabled: false
+roles: [admin]
+runtime:
+  kind: exec
+  binary: sentinel-sandbox
+  timeout_ms: 4000
+commands:
+  - name: status
+    description: "Show sandbox integration and isolation readiness status"
+    capability: code.invoke
+  - name: profiles
+    description: "List available example sandbox policy profiles"
+    capability: code.invoke
+  - name: plan
+    description: "Inspect a proposed sandbox profile without executing anything"
+    capability: code.invoke
+  - name: doctor
+    description: "Explain missing sandbox execution prerequisites"
+    capability: code.invoke
