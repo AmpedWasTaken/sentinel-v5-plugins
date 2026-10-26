@@ -1,0 +1,133 @@
+name: Publish stable Sentinel plugin distributions v1.0.0
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-stable-plugins.yml
+      - scripts/package-stable-release.py
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sentinel-stable-plugin-v1.0.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    name: Review, test, package and publish stable plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate plugin manifests, runtimes and source tests
+        run: |
+          set -euo pipefail
+          python -m pip install PyYAML==6.0.2
+          python scripts/validate_plugins.py
+          go test ./...
+          go vet ./...
+          python -m unittest discover -s tests -v
+      - name: Ensure immutable stable tag does not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view plugins-stable-v1.0.0 >/dev/null 2>&1; then
+            echo "::error::Stable release already exists; never replace published artifacts"
+            exit 1
+          fi
+      - name: Cross compile supported release platforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in linux-amd64 linux-arm64 windows-amd64; do
+            os="$(echo "$target" | cut -d- -f1)"
+            arch="$(echo "$target" | cut -d- -f2)"
+            mkdir -p "build-plugins/$target"
+            for plugin in c2-relay webserver netwatch hello-go; do
+              if [[ "$os" == windows && "$plugin" == netwatch ]]; then continue; fi
+              ext=""
+              if [[ "$os" == windows ]]; then ext=".exe"; fi
+              GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 \
+                go build -buildvcs=false -trimpath -ldflags="-s -w" \
+                -o "build-plugins/$target/$plugin$ext" "./plugins/$plugin"
+            done
+          done
+      - name: Smoke test real binaries without traffic generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '{"version":1,"command":"info","actor":"stable-release","role":"admin","args":{}}' | \
+            (cd plugins/c2-relay && ../../build-plugins/linux-amd64/c2-relay) | \
+            python -c 'import json,sys;r=json.load(sys.stdin);assert r["version"]==1 and not r.get("error") and r["result"]["text"]'
+          printf '{"version":1,"command":"greet","actor":"stable-release","role":"admin","args":{"name":"Sentinel"}}' | \
+            build-plugins/linux-amd64/hello-go | \
+            python -c 'import json,sys;r=json.load(sys.stdin);assert r["version"]==1 and not r.get("error") and r["result"]["view"]=="greeting"'
+      - name: Package stable release artifacts
+        run: python scripts/package-stable-release.py
+      - name: Validate all artifacts and pinned checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd stable-release && sha256sum -c SHA256SUMS)
+          python - <<'PY'
+          import hashlib,json,pathlib,zipfile
+          root=pathlib.Path("stable-release")
+          m=json.loads((root/"manifest.json").read_text())
+          assert m["tag"]=="plugins-stable-v1.0.0" and m["release_channel"]=="stable"
+          assert m["marketplace_installable"] is False and m["signed"] is False
+          assert [p["id"] for p in m["plugins"]]==["c2-relay","webserver","netwatch","hello-go","hello-python"]
+          items=[(p,a) for p in m["plugins"] for a in p["artifacts"]]
+          assert len(items)==12
+          expected={"manifest.json","SHA256SUMS"}
+          for p,a in items:
+            expected.add(a["file"])
+            b=(root/a["file"]).read_bytes()
+            assert len(b)==a["size"] and hashlib.sha256(b).hexdigest()==a["sha256"]
+            with zipfile.ZipFile(root/a["file"]) as z:
+              names=z.namelist()
+              assert len(names)==len(set(names)) and len(names)>=3
+              assert sum(x in names for x in ("plugin.yaml","plugin.yml"))==1
+              assert "MANUAL-INSTALL.md" in names
+              if a["os"]!="any":
+                assert "bin/"+p["id"]+(".exe" if a["os"]=="windows" else "") in names
+              assert all(not n.startswith("/") and ".." not in pathlib.PurePosixPath(n).parts for n in names)
+          assert {x.name for x in root.iterdir()}==expected
+          print("Validated all 12 versioned archives; signed SSH installer remains unchanged")
+          PY
+      - name: Publish GitHub full release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create plugins-stable-v1.0.0 stable-release/* \
+            --target "$GITHUB_SHA" --latest \
+            --title "Sentinel V5 Plugins v1.0.0 — C2 Relay, Webserver, NetWatch and SDK Examples" \
+            --notes "Full v1.0.0 release of C2 Relay (read-only health/metadata, no traffic dispatch), Webserver (loopback-bound by default), NetWatch (Linux telemetry), Hello Go and Hello Python. CI validates source, tests, platform builds, archive layouts and published hashes. These richer host-trusted packages are for administrator-reviewed manual provisioning; they are not compatible with the signed two-file SSH marketplace installer. No browser one-click install is implied. Explicit host trusted-code opt-in and least privilege remain required."
+      - name: Recheck public artifact integrity
+        shell: bash
+        env:
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,pathlib,urllib.request
+          manifest=json.loads(pathlib.Path("stable-release/manifest.json").read_text())
+          for plugin in manifest["plugins"]:
+            for a in plugin["artifacts"]:
+              request=urllib.request.Request(a["url"],headers={"User-Agent":"Sentinel-v1-Stable-Release-Audit"})
+              with urllib.request.urlopen(request,timeout=30) as response:
+                data=response.read(16*1024*1024+1)
+              assert len(data)==a["size"] and hashlib.sha256(data).hexdigest()==a["sha256"],a["file"]
+              print("Verified",a["file"])
+          PY
