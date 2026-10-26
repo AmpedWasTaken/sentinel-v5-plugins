@@ -1,0 +1,26 @@
+version: 1
+id: ai-lab
+name: Sentinel AI Lab
+description: "Opt-in local AI model correctness and latency benchmarks; no generated code execution"
+enabled: false
+roles: [admin]
+runtime:
+  kind: exec-rpc
+  binary: ai-lab
+  timeout_ms: 4000
+commands:
+  - name: run
+    description: "Start a fixed prompt suite against a configured local model"
+    capability: code.invoke
+  - name: status
+    description: "Show the status of an AI benchmark run"
+    capability: code.invoke
+  - name: results
+    description: "List recent model benchmark results"
+    capability: code.invoke
+  - name: cancel
+    description: "Cancel a running AI benchmark"
+    capability: code.invoke
+  - name: suites
+    description: "List built-in read-only benchmark suites"
+    capability: code.invoke
