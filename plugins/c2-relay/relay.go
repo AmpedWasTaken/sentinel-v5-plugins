@@ -169,30 +169,32 @@ func(cfg Config)Validate()error{
 
 // The URL registry is static metadata, never dispatched or interpolated.
 func validateProviderURL(raw string)error{
- if len(raw)==0||len(raw)>600||strings.ContainsAny(raw,"\r\n\x1b"){return errors.New("invalid provider URL")}
- u,err:=url.Parse(raw)
- if err!=nil||u.Scheme!="https"||u.Host==""||u.User!=nil||u.Opaque!=""||u.Fragment!=""||u.RawFragment!=""||
-    (u.Port()!=""&&u.Port()!="443")||(u.Path!="/testnetwork"&&u.Path!="/attack")||u.RawPath!=""{
-  return errors.New("provider URL must be static HTTPS /testnetwork or /attack")
- }
- if !hostnamePattern.MatchString(u.Hostname())||net.ParseIP(u.Hostname())!=nil||strings.HasSuffix(u.Hostname(),".local"){
-  return errors.New("provider requires DNS hostname")
- }
- expected:=map[string]string{
-  "target":"<<$target>>","port":"<<$port>>","duration":"<<$duration>>",
-  "method":"<<$method>>","key":"<<$api_key>>",
- }
- seen:=map[string]bool{}
- for _,part:=range strings.Split(u.RawQuery,"&"){
-  key,value,ok:=strings.Cut(part,"=")
-  want,allowed:=expected[key]
-  if !ok||!allowed||seen[key]||value!=want{return errors.New("provider URLs accept only exact placeholder query fields; never store API keys")}
-  seen[key]=true
- }
- for _,required:=range []string{"target","port","duration","method"}{
-  if !seen[required]{return fmt.Errorf("missing provider query field %s",required)}
- }
- return nil
+	// Additional security check for the target: allow any IP or hostname
+	if len(raw)==0||len(raw)>600||strings.ContainsAny(raw,"\
+\\n\\x1b"){return errors.New("invalid provider URL")}
+	u,err:=url.Parse(raw)
+	if err!=nil||u.Scheme!="https”||u.Host==""||u.User!=nil||u.Opaque!=""||u.Fragment!=""||u.RawFragment!=""||
+		(u.Port()!=""(u.Port())!="443")||(u.Path!="/testnetwork"(u.Path!)="/attack")||u.RawPath!=""{
+	return errors.New("provider URL must be static HTTPS /testnetwork or /attack")
+}
+if !hostnamePattern.MatchString(u.Hostname())||net.ParseIP(u.Hostname())!=nil||strings.HasSuffix(u.Hostname(),".local"){
+return errors.New("provider requires DNS hostname")
+}
+expected:=map[string]string{
+"target":"<<$target>>","port":"<<$port>>","duration":"<<$duration>>",
+"method":"<<$method>>","key":"<<$api_key>>",
+}
+seen:=map[string]bool{}
+for _,part:=range strings.Split(u.RawQuery,"&"){
+key,value,ok:=strings.Cut(part,"=")
+want,allowed:=expected[key]
+if !ok||!allowed||seen[key]||value!=want{return errors.New("provider URLs accept only exact placeholder query fields; never store API keys")}
+seen[key]=true
+}
+for _,required:=range []string{"target","port","duration","method"}{
+if !seen[required]{return fmt.Errorf("missing provider query field %s",required)}
+}
+return nil
 }
 
 func sortedKeys[T any](values map[string]T)[]string{
