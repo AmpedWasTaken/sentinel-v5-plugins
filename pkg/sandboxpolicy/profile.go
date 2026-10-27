@@ -16,6 +16,8 @@ type Runtime string
 const (
 	GVisor      Runtime = "gvisor"
 	Firecracker Runtime = "firecracker"
+	// Native is a development-only, non-production Linux isolation backend.
+	Native Runtime = "native"
 )
 
 type Profile struct {
@@ -45,7 +47,7 @@ func (p Profile) Validate() error {
 	if !slug.MatchString(p.ID) || !slug.MatchString(p.EntrypointID) || p.Version != 1 {
 		return errors.New("invalid profile ID, entrypoint or version")
 	}
-	if p.Runtime != GVisor && p.Runtime != Firecracker {
+	if p.Runtime != GVisor && p.Runtime != Firecracker && p.Runtime != Native {
 		return errors.New("unsupported sandbox runtime")
 	}
 	if !pinnedImage.MatchString(p.ImageDigest) {
