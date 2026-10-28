@@ -13,3 +13,17 @@ commands:
   - name: counter
     description: Increment a persistent server-side counter
     capability: code.invoke
+app:
+  enabled: true
+  title: Persistent Counter
+  entry: overview
+  navigation:
+    - id: overview
+      title: Overview
+      view: overview
+    - id: details
+      title: Details
+      view: details
+  actions:
+    - id: app.increment
+      command: counter
