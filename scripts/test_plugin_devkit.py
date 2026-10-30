@@ -29,8 +29,8 @@ class PluginDevkitTest(unittest.TestCase):
             root = Path(tmp) / "plugin"
             target = Path(tmp) / "out.zip"
             devkit.init_plugin(root, "my-widget")
-            (root / "config.yaml").write_text("settings:\\n  retries: 2\\n".replace("\\\\n", "\\n"), encoding="utf-8")
-            (root / "config.yml").write_text("theme: midnight\\n".replace("\\\\n", "\\n"), encoding="utf-8")
+            (root / "config.yaml").write_text("settings:\n  retries: 2\n", encoding="utf-8")
+            (root / "config.yml").write_text("theme: midnight\n", encoding="utf-8")
             entries = devkit.checked_files(root)
             self.assertIn("config.yaml", [name for name, _ in entries])
             self.assertIn("config.yml", [name for name, _ in entries])
