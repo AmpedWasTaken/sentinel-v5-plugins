@@ -1,0 +1,22 @@
+name: Community plugin devkit
+on:
+  pull_request:
+    paths:
+      - "scripts/plugin-devkit.py"
+      - "scripts/test_plugin_devkit.py"
+      - ".github/workflows/community-devkit.yml"
+  push:
+    paths:
+      - "scripts/plugin-devkit.py"
+      - "scripts/test_plugin_devkit.py"
+      - ".github/workflows/community-devkit.yml"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run standalone developer tooling tests
+        run: python -m unittest discover -s scripts -p 'test_plugin_devkit.py' -v
