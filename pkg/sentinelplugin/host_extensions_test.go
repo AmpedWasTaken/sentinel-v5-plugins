@@ -37,8 +37,7 @@ func TestHostExtensionsRPCWire(t *testing.T) {
         {"sessions.list",`{"sessions":[{"id":"1","username":"root","connected":"2026-10-30T20:00:00Z","last_active":"2026-10-30T20:00:00Z"}]}`},
     }
     for _,expect:=range cases{
-        line,err:=reader.ReadBytes('
-')
+        line,err:=reader.ReadBytes(10)
         if err!=nil{t.Fatal(err)}
         var received persistentFrame
         if err:=json.Unmarshal(line,&received);err!=nil{t.Fatal(err)}
@@ -46,8 +45,7 @@ func TestHostExtensionsRPCWire(t *testing.T) {
         reply:=persistentFrame{Version:PersistentProtocolVersion,Type:"service-result",Token:token,ID:received.ID,Service:received.Service,Data:json.RawMessage(expect.response)}
         if err:=json.NewEncoder(inputW).Encode(reply);err!=nil{t.Fatal(err)}
     }
-    line,err:=reader.ReadBytes('
-')
+    line,err:=reader.ReadBytes(10)
     if err!=nil{t.Fatal(err)}
     var final persistentFrame
     if err:=json.Unmarshal(line,&final);err!=nil{t.Fatal(err)}
