@@ -138,3 +138,25 @@ Python plugins can call precompiled native C libraries through `ctypes` while ke
 - [Verified installer](https://github.com/AmpedWasTaken/Sentinel-V5/blob/main/docs/verified-plugin-installer.md)
 
 The core repo may be private or inaccessible to some contributors. This guide supplies a minimal public starting point; maintainers should keep it synchronized with source changes.
+
+## Community Marketplace developer workflow
+
+The website lets signed-in developers publish source-only versions using a ZIP or a public GitHub repository pinned to a commit SHA. Public listings are **community-made and unreviewed by default**. They are never SSH-installable merely because a user uploaded code or passed automated checks.
+
+Generate a minimal SML starter with Python 3.9+:
+
+```sh
+python scripts/plugin-devkit.py init my-widget ./my-widget
+python scripts/plugin-devkit.py check ./my-widget
+python scripts/plugin-devkit.py pack ./my-widget ./my-widget-1.0.0.zip
+```
+
+The archive has a root-level `plugin.yaml`. Upload it from **Dashboard → Community Plugins**. Alternatively use **Import GitHub**, specify a public repository and optional subdirectory. The importer selects supported SDK files from a pinned commit and validates the resulting package.
+
+The developer tool's layout checks are not a malware scan. Source inspection and heuristic warnings cannot establish safety. Review network endpoints, dependencies, privileges and opaque executables before running third-party code.
+
+An uploaded source package is not an approved distribution release. Consult [Community plugin releases](community-plugin-releases.md) for independently signed artifacts and host isolation requirements.
+
+```sh
+python -m unittest discover -s scripts -p 'test_plugin_devkit.py'
+```
