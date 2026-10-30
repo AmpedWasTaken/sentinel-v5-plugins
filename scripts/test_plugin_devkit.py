@@ -24,6 +24,21 @@ class PluginDevkitTest(unittest.TestCase):
                 self.assertIn("plugin.yaml", archive.namelist())
                 self.assertIn("views/starter.sml", archive.namelist())
 
+    def test_configuration_yaml_is_included_in_published_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "plugin"
+            target = Path(tmp) / "out.zip"
+            devkit.init_plugin(root, "my-widget")
+            (root / "config.yaml").write_text("settings:\\n  retries: 2\\n".replace("\\\\n", "\\n"), encoding="utf-8")
+            (root / "config.yml").write_text("theme: midnight\\n".replace("\\\\n", "\\n"), encoding="utf-8")
+            entries = devkit.checked_files(root)
+            self.assertIn("config.yaml", [name for name, _ in entries])
+            self.assertIn("config.yml", [name for name, _ in entries])
+            devkit.package(root, target)
+            with zipfile.ZipFile(target) as archive:
+                self.assertIn("config.yaml", archive.namelist())
+                self.assertIn("config.yml", archive.namelist())
+
     def test_reject_symlinks_and_path_escape(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "plugin"
