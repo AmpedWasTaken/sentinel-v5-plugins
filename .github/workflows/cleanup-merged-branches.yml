@@ -1,0 +1,93 @@
+name: Clean merged feature branches
+# A one-time cleanup on introduction/update, plus a manual dry-run mode.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-merged-branches.yml
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only report candidates without deleting them"
+        type: boolean
+        required: true
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: branch-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Remove only verified merged, unmodified, unprotected branches
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          # GitHub PRs merged via squash are not necessarily git ancestors.
+          # Match their exact saved head SHA, never just their branch name.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" \
+            --jq ".[] | select(.merged_at != null and .head.repo.full_name == \"$GITHUB_REPOSITORY\") | [.head.ref, .head.sha] | @tsv" \
+            > "$tmp/merged"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            --jq ".[] | select(.head.repo.full_name == \"$GITHUB_REPOSITORY\") | .head.ref" \
+            > "$tmp/open"
+          deleted=0
+          skipped=0
+          candidates=0
+          while IFS= read -r branch; do
+            case "$branch" in
+              HEAD|main|master|dev|develop|staging|production|release/*|hotfix/*|maintenance/*)
+                skipped=$((skipped + 1)); continue;;
+            esac
+            if grep -Fqx -- "$branch" "$tmp/open"; then
+              echo "KEEP (open PR): $branch"
+              skipped=$((skipped + 1)); continue
+            fi
+            head="$(git show-ref --verify --hash "refs/remotes/origin/$branch")"
+            if git merge-base --is-ancestor "$head" refs/remotes/origin/main; then
+              reason="commit is an ancestor of main"
+            elif grep -Fqx -- "$(printf '%s\t%s' "$branch" "$head")" "$tmp/merged"; then
+              reason="exact head SHA belongs to a merged PR"
+            else
+              echo "KEEP (unique or unverified commits): $branch"
+              skipped=$((skipped + 1)); continue
+            fi
+            candidates=$((candidates + 1))
+            if [[ "$DRY_RUN" == "true" ]]; then
+              echo "DRY RUN: would delete $branch ($reason)"
+              continue
+            fi
+            # Refuse to delete a branch updated since the last fetch.
+            live="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)"
+            if [[ "$live" != "$head" ]]; then
+              echo "KEEP (head moved or cannot be verified): $branch"
+              skipped=$((skipped + 1)); continue
+            fi
+            if gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch"; then
+              echo "DELETED: $branch ($reason)"
+              deleted=$((deleted + 1))
+            else
+              echo "KEEP (GitHub rejected deletion): $branch"
+              skipped=$((skipped + 1))
+            fi
+          done < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | LC_ALL=C sort)
+          echo "Candidates: $candidates; deleted: $deleted; preserved/skipped: $skipped"
+          {
+            echo "### Branch cleanup"
+            echo "Mode: $DRY_RUN"
+            echo "Verified candidates: $candidates"
+            echo "Deleted: $deleted"
+            echo "Preserved/skipped: $skipped"
+          } >> "$GITHUB_STEP_SUMMARY"
