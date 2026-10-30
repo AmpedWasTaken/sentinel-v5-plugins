@@ -160,3 +160,103 @@ func(a *PersistentApp)ServeIO(in io.Reader,out io.Writer)error{
     }
     return reader.Err()
 }
+
+// CallHost invokes a manifest-granted RPC service with a bounded JSON payload.
+// Privileged account and policy services are additionally checked by Sentinel
+// against the authenticated caller's current permissions on every request.
+// No plugin can grant itself these capabilities by sending a service name.
+func (h *HostServices) CallHost(service string, payload any, out any) error {
+    var data json.RawMessage
+    if payload != nil {
+        encoded,err:=json.Marshal(payload)
+        if err!=nil{return err}
+        if len(encoded)>8192{return errors.New("host service payload too large")}
+        data=encoded
+    }
+    response,err:=h.call(persistentFrame{Service:service,Data:data})
+    if err!=nil{return err}
+    if out!=nil {
+        if len(response.Data)==0{return errors.New("empty host service response")}
+        return json.Unmarshal(response.Data,out)
+    }
+    return nil
+}
+
+// CheckPermission checks the currently authenticated user's built-in or
+// namespaced custom capability. The caller's username cannot be spoofed.
+func (h *HostServices) CheckPermission(permission string) (bool,error) {
+    var out struct {Allowed bool `json:"allowed"`}
+    err:=h.CallHost("permissions.check",map[string]string{"permission":permission},&out)
+    return out.Allowed,err
+}
+func (h *HostServices) ListPermissions() ([]string,error) {
+    var out struct {Permissions []string `json:"permissions"`}
+    err:=h.CallHost("permissions.list",nil,&out)
+    return out.Permissions,err
+}
+
+// AccountCreate is an account provisioning request. A password or SSH public
+// key is required. All requested roles, rank grants and custom permissions
+// remain subject to the host's role ceiling and last-admin safeguards.
+type AccountCreate struct {
+    Username string `json:"username"`
+    Role string `json:"role"`
+    Rank string `json:"rank,omitempty"`
+    Plan string `json:"plan,omitempty"`
+    Password string `json:"password,omitempty"`
+    PublicKey string `json:"public_key,omitempty"`
+    ExpiresAt string `json:"expires_at,omitempty"`
+    CustomPermissions []string `json:"custom_permissions,omitempty"`
+    DeniedPermissions []string `json:"denied_permissions,omitempty"`
+}
+// AccountUpdate deliberately uses pointer fields so omissions do not
+// accidentally erase an existing account's role, rank or policy.
+type AccountUpdate struct {
+    Username string `json:"username"`
+    Role *string `json:"role,omitempty"`
+    Rank *string `json:"rank,omitempty"`
+    Plan *string `json:"plan,omitempty"`
+    Locked *bool `json:"locked,omitempty"`
+    ExpiresAt *string `json:"expires_at,omitempty"`
+    CustomPermissions *[]string `json:"custom_permissions,omitempty"`
+    DeniedPermissions *[]string `json:"denied_permissions,omitempty"`
+}
+type Rank struct {
+    Label string `json:"label"`
+    Color string `json:"color,omitempty"`
+    Permissions []string `json:"permissions,omitempty"`
+    CustomPermissions []string `json:"custom_permissions,omitempty"`
+}
+type Plan struct {
+    Label string `json:"label"`
+    DurationDays int `json:"duration_days"`
+    Permissions []string `json:"permissions,omitempty"`
+    CustomPermissions []string `json:"custom_permissions,omitempty"`
+}
+func (h *HostServices) CreateAccount(req AccountCreate) error {
+    return h.CallHost("accounts.create",req,nil)
+}
+func (h *HostServices) UpdateAccount(req AccountUpdate) error {
+    return h.CallHost("accounts.update",req,nil)
+}
+func (h *HostServices) DeleteAccount(username string) error {
+    return h.CallHost("accounts.delete",map[string]string{"username":username},nil)
+}
+func (h *HostServices) UpsertRank(name string,rank Rank) error {
+    return h.CallHost("ranks.upsert",struct{
+        Name string `json:"name"`
+        Rank Rank `json:"rank"`
+    }{name,rank},nil)
+}
+func (h *HostServices) DeleteRank(name string) error {
+    return h.CallHost("ranks.delete",map[string]string{"name":name},nil)
+}
+func (h *HostServices) UpsertPlan(name string,plan Plan) error {
+    return h.CallHost("plans.upsert",struct{
+        Name string `json:"name"`
+        Plan Plan `json:"plan"`
+    }{name,plan},nil)
+}
+func (h *HostServices) DeletePlan(name string) error {
+    return h.CallHost("plans.delete",map[string]string{"name":name},nil)
+}
