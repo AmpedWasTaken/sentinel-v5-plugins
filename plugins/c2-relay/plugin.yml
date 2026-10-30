@@ -1,14 +1,14 @@
 version: 1
 id: c2-relay
 name: C2 Relay
-description: Hot-reloaded role-checked methods, multi-provider metadata, and safe health checks
+description: Hot-reloaded role-checked methods, multi-provider metadata, and discord/telegram logging
 enabled: false
 roles: [admin, operator]
 runtime:
   kind: exec
   binary: c2-relay
   timeout_ms: 5000
-dynamic_commands: config.yml
+dynamic_commands: config.yaml
 commands:
   - name: info
     description: Show provider and method configuration counts

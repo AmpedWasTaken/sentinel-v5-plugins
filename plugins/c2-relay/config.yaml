@@ -1,0 +1,55 @@
+version: 1
+relay:
+  command_prefix: "!"
+  kv_prefix: "-"
+  timeout_unit: second
+  timeout_seconds: 15
+  default_duration_seconds: 60
+  user_agent: "C2-Relay/1.0"
+  callback_preview: true
+  groups:
+    - name: admin
+      max_duration_seconds: 600
+      max_concurrent: 15
+    - name: operator
+      max_duration_seconds: 120
+      max_concurrent: 2
+  dns:
+    enabled: true
+    resolvers: ["1.1.1.1", "8.8.8.8"]
+  health_api:
+    enabled: false
+    minimum_success: 1
+    endpoints:
+      - name: primary
+        url: "https://example.com/health"
+  providers:
+    provider_one:
+      enabled: true
+      endpoints:
+        - name: primary
+          url: "https://api.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
+    provider_two:
+      enabled: true
+      endpoints:
+        - name: secondary
+          url: "https://api2.example.com/testnetwork?target=<<$target>>&port=<<$port>>&duration=<<$duration>>&method=<<$method>>&key=<<$api_key>>"
+  methods:
+    tcp:
+      enabled: true
+      description: "TCP method using multiple configured providers"
+      providers: [provider_one, provider_two]
+      minimum_success: 1
+      permissions: [admin, operator]
+    udp:
+      enabled: true
+      description: "UDP method with provider one"
+      providers: [provider_one]
+      minimum_success: 1
+      permissions: [operator]
+    http:
+      enabled: true
+      description: "HTTP method with provider two"
+      providers: [provider_two]
+      minimum_success: 1
+      permissions: [operator]
