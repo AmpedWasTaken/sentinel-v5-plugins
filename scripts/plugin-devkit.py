@@ -15,7 +15,7 @@ from pathlib import Path
 
 PLUGIN_ID = re.compile(r"^[a-z][a-z0-9-]{0,23}$")
 SAFE_FILE = re.compile(
-    r"^(plugin\.yaml|providers\.yaml|config\.json|README\.md|"
+    r"^(plugin\.yaml|providers\.yaml|config\.json|config\.ya?ml|README\.md|"
     r"(?:views|components)/[a-z][a-z0-9_-]{0,47}\.sml|"
     r"art/[a-z][a-z0-9_-]{0,47}\.txt|"
     r"media/[A-Za-z0-9_-]{1,45}\.(?:png|jpe?g|gif)|"
