@@ -22,6 +22,7 @@ plugins/
     plugin.yaml
     README.md
     providers.yaml         # optional for a provider-based plugin
+    config.yaml            # optional plugin configuration (config.yml and config.json also accepted)
     views/
       my-report.sml        # optional
     main.go                # optional source for a Go plugin
