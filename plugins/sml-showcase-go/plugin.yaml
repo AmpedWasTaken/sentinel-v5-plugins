@@ -1,0 +1,22 @@
+version: 1
+id: sml-showcase-go
+name: SML Go Showcase
+description: Copyable native Go handler and SML preview for developers
+enabled: false
+roles: [admin, operator]
+runtime:
+  kind: exec
+  binary: sml-showcase-go
+  timeout_ms: 3000
+commands:
+  - name: preview
+    description: Render a safe sample widget dashboard
+    capability: code.invoke
+ui:
+  enabled: true
+  title: SML Go Example
+  entry: preview
+  navigation:
+    - id: preview
+      title: Go SML Demo
+      view: go-preview
